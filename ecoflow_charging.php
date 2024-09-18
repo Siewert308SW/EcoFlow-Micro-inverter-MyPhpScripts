@@ -184,9 +184,9 @@ $ecoflowSerialNumber 	= ['HWXXXXXXXXXXXXXX',];				 // Powerstream serie nummer
 	$bedroomWatts 	  	  = intval($bedroomWatts_data['result'][0]['Data'] ?? 0);
 
 // Bepaal powerBreach
-	if ($P1Usage >= $maxPowerUsage && $quookerWatts <= 2 && $counter_1Watts <= 20 && $counter_2Watts <= 20 && $bedroomWatts <= 1000) {
+	if ($P1Usage >= $maxPowerUsage && $quookerWatts <= 5 && $counter_1Watts <= 50 && $counter_2Watts <= 50 && $bedroomWatts <= 1000) {
 		$powerBreach = 1;
-	} elseif ($P1Usage >= $maxPowerUsage || $quookerWatts > 2 || $counter_1Watts > 20 || $counter_2Watts > 20 || $bedroomWatts > 1000) {
+	} elseif ($P1Usage >= $maxPowerUsage || $quookerWatts > 5 || $counter_1Watts > 50 || $counter_2Watts > 50 || $bedroomWatts > 1000) {
 		$powerBreach = 0;
 	} elseif ($P1Usage < $maxPowerUsage) {
 		$powerBreach = 0;
@@ -197,28 +197,28 @@ $ecoflowSerialNumber 	= ['HWXXXXXXXXXXXXXX',];				 // Powerstream serie nummer
 
 // Print 
 	if ($debug == 'yes'){
-	echo '-/- Batterij                 -\-'.PHP_EOL;
-	echo ' -- Batterij Voltage          : '.$pvAvInputVoltage.'v'.PHP_EOL;
-	if ($batterijEmpty == 1) {
-	echo ' -- Batterij leeg!'.PHP_EOL;
-	}
-	echo ' '.PHP_EOL;
-	echo '-/- Power Breach             -\-'.PHP_EOL;
-	echo ' -- Breached                  : '.$powerBreach.''.PHP_EOL;
-	echo ' '.PHP_EOL;
-	echo '-/- EcoFlow Inverter         -\-'.PHP_EOL;
-	echo ' -- Baseload                  : '.$currentBaseload.'w'.PHP_EOL;
-	echo ' -- Output                    : '.$pvInputTotalWatts.'w'.PHP_EOL;
-	echo ' '.PHP_EOL;
-	echo '-/- P1 Meter                 -\-'.PHP_EOL;
-	if ($P1Usage >= 0){
-	echo ' -- Verbruik                  : '.$P1Usage.'w'.PHP_EOL;
-	} else {
-	echo ' -- Teruglevering             : '.$P1Usage.'w'.PHP_EOL;		
-	}
-	echo ' '.PHP_EOL;
-	echo '-/- Lader                    -\-'.PHP_EOL;
-	echo ' -- Lader Status              : '.$charger.''.PHP_EOL;
+		echo '-/- Lader                    -\-'.PHP_EOL;
+		echo ' -- Lader Status              : '.$charger.''.PHP_EOL;
+		echo ' '.PHP_EOL;
+		echo '-/- Batterij                 -\-'.PHP_EOL;
+		echo ' -- Batterij Voltage          : '.$pvAvInputVoltage.'v'.PHP_EOL;
+		if ($batterijEmpty == 1) {
+		echo ' -- Batterij leeg!'.PHP_EOL;
+		}
+		echo ' '.PHP_EOL;
+		echo '-/- Power Breach             -\-'.PHP_EOL;
+		echo ' -- Breached                  : '.$powerBreach.''.PHP_EOL;
+		echo ' '.PHP_EOL;
+		echo '-/- EcoFlow Inverter         -\-'.PHP_EOL;
+		echo ' -- Baseload                  : '.$currentBaseload.'w'.PHP_EOL;
+		echo ' -- Output                    : '.$pvInputTotalWatts.'w'.PHP_EOL;
+		echo ' '.PHP_EOL;
+		echo '-/- P1 Meter                 -\-'.PHP_EOL;
+		if ($P1Usage >= 0){
+		echo ' -- Verbruik                  : '.$P1Usage.'w'.PHP_EOL;
+		} else {
+		echo ' -- Teruglevering             : '.$P1Usage.'w'.PHP_EOL;		
+		}
 	}
 	
 //
@@ -228,7 +228,7 @@ $ecoflowSerialNumber 	= ['HWXXXXXXXXXXXXXX',];				 // Powerstream serie nummer
 //
 
 // Lader AAN bij genoeg zonnestroom en Batt% onder x.x%
-	if ($charger == 'Off' && $P1Usage <= $maxPowerReturn && $currentBaseload == 0 && $pvAvInputVoltage <= 25.7 && $pvInputTotalWatts == 0 && $powerBreach == 0) {
+	if ($charger == 'Off' && $P1Usage <= $maxPowerReturn && $currentBaseload == 0 && $pvAvInputVoltage <= 26.1 && $pvInputTotalWatts == 0 && $powerBreach == 0) {
 		if ($debug == 'yes'){
 		echo ' -- Lader ingeschakeld'.PHP_EOL;
 		}
