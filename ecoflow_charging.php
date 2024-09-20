@@ -22,7 +22,7 @@ $bedroomWattsIDX 		= 'idx'; 								 // watts-meter tbv slaapkamer in Domoticz
 $voltageIDX 			= 'idx'; 								 // Voltage-meter in Domoticz
 
 // Lader/Batterij variables
-$minBatteryVoltage 		= 23.0; 								 // Minimale Voltage wat in de accu moet blijven.
+$minBatteryVoltage 		= 23.1; 								 // Minimale Voltage wat in de accu moet blijven.
 $maxPowerReturn			= -600;									 // Minimale Wattage teruglevering wanneer de lader moet starten
 $maxPowerUsage			= 250;									 // Maximale Wattage verbruik wanneer de lader moet stoppen
 
