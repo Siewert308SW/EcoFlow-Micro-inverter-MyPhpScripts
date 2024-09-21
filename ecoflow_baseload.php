@@ -21,12 +21,15 @@
 // Homewizard variables
 	$hwP1IP 			  = 'homewizardP1IP'; 					   // IP Homewizard P1 Meter
 	$hwKwhIP 			  = 'homewizardKwhMeter';     			   // IP Homewizard Solar kwh Meter
-
+	$hwSocketIP 		  = 'homewizardEnergySocketMeter';         // IP Homewizard EnergySocket Meter (gekoppeld aand de omvormer)
+	
 // Domoticz variables
 	$domoticzIP 		  = 'domoticzIP:port'; 			    	   // IP + poort van Domoticz
 	$chargerIDX 		  = 'idx'; 							       // On/Off switch lader in Domoticz
 	$chargerUsageIDX 	  = 'idx'; 							       // Verbruik lader in Domoticz
-
+	$homeIDX 	 	      = 'idx'; 							   		// Iemand thuis status in Domoticz
+	$failSaveIDX 		  = 'idx'; 							   
+	
 // Ecoflow Powerstream API variables
 	$ecoflowPath 		  = '/path/to/files/';                     // Path waar je scripts zich bevinden
 	$ecoflowAccessKey	  = 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx';	   // Powerstream API access key
@@ -86,10 +89,13 @@
 		
 // Domoticz URLs
 		$DomoticzJsonUrl 	  = 'http://'.$domoticzIP.'/json.htm?type=command&param=getdevices&rid=';
-		$DomoticzJsonResult   = ['charger' => $DomoticzJsonUrl . $chargerIDX,'chargerUsage' => $DomoticzJsonUrl . $chargerUsageIDX,'failsave' => $DomoticzJsonUrl . $failSaveIDX];
-
+		$DomoticzJsonResult   = ['charger' => $DomoticzJsonUrl . $chargerIDX,'home' => $DomoticzJsonUrl . $homeIDX,'failsave' => $DomoticzJsonUrl . $failSaveIDX,'chargerUsage' => $DomoticzJsonUrl . $chargerUsageIDX];
+		
 // Get Lader status
 		$charger 			  = json_decode(file_get_contents($DomoticzJsonResult['charger']), true)['result'][0]['Status'] ?? 'Off';
+
+// Get Iemand thuis status
+		$home 			      = json_decode(file_get_contents($DomoticzJsonResult['home']), true)['result'][0]['Status'] ?? 'Off';
 
 // Get Failsave status
 		$failsave 			  = json_decode(file_get_contents($DomoticzJsonResult['failsave']), true)['result'][0]['Status'] ?? 'Off';
@@ -174,6 +180,8 @@
 // Schakeltijd			
 		if (date('H:i') >= ( ''.$invStartTime.'' ) && date('H:i') <= ( ''.$invEndTime.'' )) {
 			$schedule = 1;
+		} elseif (date('H:i') < ( ''.$invStartTime.'' ) && date('H:i') > ( ''.$invEndTime.'' ) && $home == 'Off' && $pvAvInputVoltage >= 24.55) {
+			$schedule = 1;
 		} else {
 			$schedule = 0;
 		}
@@ -184,28 +192,40 @@
 		} else {
 		$productionTotal = ($PVProduction + $SocketProduction);
 		}
+		$realUsage       = ($hwP1Usage - $productionTotal);
 		
-		$realUsage    = ($hwP1Usage - $productionTotal);
-		
-		if ($hwP1Usage >= $ecoflowMaxOutput) {
+		if ($hwP1Usage >= $ecoflowMaxOutput && $pvAvInputVoltage >= 24.55) {
 			$newBaseload = $ecoflowMaxOutput;
 			$newBaseloadDebug = 1;
 			
-		} elseif ($realUsage < $ecoflowMaxOutput && $hwP1Usage > -70 && $hwP1Usage < $ecoflowMaxOutput) {
-			$newBaseload = ($realUsage) - $ecoflowOutputOffSet;
+		} elseif ($hwP1Usage >= $ecoflowMaxOutput && $pvAvInputVoltage < 24.55) {
+			$newBaseload = 300;
 			$newBaseloadDebug = 2;
 			
-		} elseif ($realUsage >= $ecoflowMaxOutput && $hwP1Usage > 0 && $hwP1Usage < $ecoflowMaxOutput) {
-			$newBaseload = ($realUsage) - $ecoflowOutputOffSet;			
+		} elseif ($realUsage < $ecoflowMaxOutput && $hwP1Usage > -85 && $hwP1Usage < $ecoflowMaxOutput) {
+			$newBaseload = ($realUsage) - $ecoflowOutputOffSet;
 			$newBaseloadDebug = 3;
-
-		} elseif ($realUsage >= $ecoflowMaxOutput && $hwP1Usage > 0 && $hwP1Usage >= $ecoflowMaxOutput) {
-			$newBaseload = $ecoflowMaxOutput;
+			
+		} elseif ($realUsage >= $ecoflowMaxOutput && $hwP1Usage > 0 && $hwP1Usage < $ecoflowMaxOutput) {
+			$newBaseload = ($hwP1Usage) - $ecoflowOutputOffSet;
+			if ($newBaseload >= 200){
+			$newBaseload = ($hwP1Usage) - $ecoflowOutputOffSet;
+			} else {
+			$newBaseload = 0;
+			}
 			$newBaseloadDebug = 4;
+
+		} elseif ($realUsage >= $ecoflowMaxOutput && $hwP1Usage > 0 && $hwP1Usage >= $ecoflowMaxOutput && $pvAvInputVoltage >= 24.55) {
+			$newBaseload = $ecoflowMaxOutput;
+			$newBaseloadDebug = 5;
+
+		} elseif ($realUsage >= $ecoflowMaxOutput && $hwP1Usage > 0 && $hwP1Usage >= $ecoflowMaxOutput && $pvAvInputVoltage >= 24.55) {
+			$newBaseload = 300;
+			$newBaseloadDebug = 6;
 
 		} else {		
 			$newBaseload = 0;
-			$newBaseloadDebug = 5;
+			$newBaseloadDebug = 7;
 		}	
 
 		$currentInvBaseload = round($currentBaseload) * 10;
@@ -229,7 +249,6 @@
 			$newInvBaseload = 0;
 		}
 		
-	
 // Vermogen op 0 indien failsave actief is
 		if ($failsave == 'On') {
 			$newBaseload = 0;
@@ -315,6 +334,12 @@
 
 			} elseif ($newBaseloadDebug == 5) {
 			echo ' -- Baseload run       : 5'.PHP_EOL;
+
+			} elseif ($newBaseloadDebug == 6) {
+			echo ' -- Baseload run       : 6'.PHP_EOL;
+
+			} elseif ($newBaseloadDebug == 7) {
+			echo ' -- Baseload run       : 7'.PHP_EOL;
 
 			}
 		}
