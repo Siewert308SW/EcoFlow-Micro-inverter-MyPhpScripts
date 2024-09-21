@@ -10,7 +10,8 @@ $debug					= 'yes';								 // Waarde 'yes' of 'no'.
 
 // Homewizard variables
 $hwP1IP 				= 'homewizardP1IP'; 			     	 // IP Homewizard P1 Meter
-
+$hwKwhIP 			    = 'homewizardKwhIP';     				 // IP Homewizard Solar kwh Meter
+	
 // Domoticz variables
 $domoticzIP			    = 'domoticzIP:port'; 	    		     // IP + poort van Domoticz
 $chargerIDX 			= 'idx'; 								 // On/Off switch lader in Domoticz
@@ -163,6 +164,19 @@ $ecoflowSerialNumber 	= ['HWXXXXXXXXXXXXXX',];				 // Powerstream serie nummer
 	  $P1Usage = round($hwP1UsageProp);
 	}
 	
+// Get HomeWizard PV (kwh meter) opwek
+		$hwSolar = curl_init();
+		curl_setopt($hwSolar, CURLOPT_URL, "http://".$hwKwhIP."/api/v1/data");
+		curl_setopt($hwSolar, CURLOPT_RETURNTRANSFER, true);
+		$hwSolarresult = curl_exec($hwSolar);
+
+		if (curl_errno($hwSolar)) { echo curl_error($hwSolar); }
+		else {
+		  $hwSolarProductionDecode = json_decode($hwSolarresult);
+		  $hwSolarProduction = $hwSolarProductionDecode->active_power_w;
+		  $PVProduction = round($hwSolarProduction);
+		}
+	
 // Get huidige Lader verbruik in Domoticz
 	$chargerWatts_data    = json_decode(file_get_contents($urls['chargerWatts']), true);
 	$chargerWatts 		  = intval($chargerWatts_data['result'][0]['Data'] ?? 0);
@@ -219,6 +233,7 @@ $ecoflowSerialNumber 	= ['HWXXXXXXXXXXXXXX',];				 // Powerstream serie nummer
 		} else {
 		echo ' -- Teruglevering             : '.$P1Usage.'w'.PHP_EOL;		
 		}
+		echo ' -- PV Opwek                  : '.$PVProduction.'w'.PHP_EOL;
 	}
 	
 //
@@ -228,7 +243,7 @@ $ecoflowSerialNumber 	= ['HWXXXXXXXXXXXXXX',];				 // Powerstream serie nummer
 //
 
 // Lader AAN bij genoeg zonnestroom en Batt% onder x.x%
-	if ($charger == 'Off' && $P1Usage <= $maxPowerReturn && $currentBaseload == 0 && $pvAvInputVoltage <= 26.1 && $pvInputTotalWatts == 0 && $powerBreach == 0) {
+	if ($charger == 'Off' && $P1Usage <= $maxPowerReturn && $currentBaseload == 0 && $pvAvInputVoltage <= 26.2 && $pvInputTotalWatts == 0 && $powerBreach == 0) {
 		if ($debug == 'yes'){
 		echo ' -- Lader ingeschakeld'.PHP_EOL;
 		}
@@ -242,11 +257,11 @@ $ecoflowSerialNumber 	= ['HWXXXXXXXXXXXXXX',];				 // Powerstream serie nummer
 		switchDevice($chargerIDX, 'Off');
 		
 // Lader UIT wanneer batterij vol is
-	//} elseif ($charger == 'On' && $pvAvInputVoltage >= 26.65 && $chargerWatts <= 5.6) {
-	//	if ($debug == 'yes'){
-	//	echo ' -- Lader uitgeschakeld, Batterij vol!'.PHP_EOL;
-	//	}
-	//	switchDevice($chargerIDX, 'Off');
+	} elseif ($charger == 'On' && $pvAvInputVoltage > 26.2 && $chargerWatts <= 5.6) {
+		if ($debug == 'yes'){
+		echo ' -- Lader uitgeschakeld, Batterij vol!'.PHP_EOL;
+		}
+		switchDevice($chargerIDX, 'Off');
 
 	} else {
 		
