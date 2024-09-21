@@ -15,7 +15,7 @@
 
 // Omvormer variables
 	$ecoflowMaxOutput 	  = 600; 				    			   // Maximale aantal output Watts wat de omvormer kan leveren. 
-	$ecoflowOutputOffSet  = 5;									   // Trek deze value (watts) af van de nieuwe baseload, Deze value wordt alsnog van het net wordt getrokken om teruglevering te voorkomen
+	$ecoflowOutputOffSet  = 10;									   // Trek deze value (watts) af van de nieuwe baseload, Deze value wordt alsnog van het net wordt getrokken om teruglevering te voorkomen
 	$minBatteryVoltage 	  = 23.1; 								   // Minimale Voltage wat in de accu moet blijven
 
 // Homewizard variables
@@ -86,10 +86,13 @@
 		
 // Domoticz URLs
 		$DomoticzJsonUrl 	  = 'http://'.$domoticzIP.'/json.htm?type=command&param=getdevices&rid=';
-		$DomoticzJsonResult   = ['charger' => $DomoticzJsonUrl . $chargerIDX,'chargerUsage' => $DomoticzJsonUrl . $chargerUsageIDX];
+		$DomoticzJsonResult   = ['charger' => $DomoticzJsonUrl . $chargerIDX,'chargerUsage' => $DomoticzJsonUrl . $chargerUsageIDX,'failsave' => $DomoticzJsonUrl . $failSaveIDX];
 
 // Get Lader status
 		$charger 			  = json_decode(file_get_contents($DomoticzJsonResult['charger']), true)['result'][0]['Status'] ?? 'Off';
+
+// Get Failsave status
+		$failsave 			  = json_decode(file_get_contents($DomoticzJsonResult['failsave']), true)['result'][0]['Status'] ?? 'Off';
 	
 // Get huidige Lader verbruik in Domoticz
 		$chargerUsage_data    = json_decode(file_get_contents($DomoticzJsonResult['chargerUsage']), true);
@@ -185,13 +188,24 @@
 		$realUsage    = ($hwP1Usage - $productionTotal);
 		
 		if ($hwP1Usage >= $ecoflowMaxOutput) {
-			$newBaseload = $ecoflowMaxOutput;	
-		} elseif ($realUsage < $ecoflowMaxOutput && $hwP1Usage > -100 && $hwP1Usage <= $ecoflowMaxOutput) {
-			$newBaseload = ($realUsage) - $ecoflowOutputOffSet;			
+			$newBaseload = $ecoflowMaxOutput;
+			$newBaseloadDebug = 1;
+			
+		} elseif ($realUsage < $ecoflowMaxOutput && $hwP1Usage > -70 && $hwP1Usage < $ecoflowMaxOutput) {
+			$newBaseload = ($realUsage) - $ecoflowOutputOffSet;
+			$newBaseloadDebug = 2;
+			
 		} elseif ($realUsage >= $ecoflowMaxOutput && $hwP1Usage > 0 && $hwP1Usage < $ecoflowMaxOutput) {
-			$newBaseload = ($hwP1Usage) - $ecoflowOutputOffSet;
+			$newBaseload = ($realUsage) - $ecoflowOutputOffSet;			
+			$newBaseloadDebug = 3;
+
+		} elseif ($realUsage >= $ecoflowMaxOutput && $hwP1Usage > 0 && $hwP1Usage >= $ecoflowMaxOutput) {
+			$newBaseload = $ecoflowMaxOutput;
+			$newBaseloadDebug = 4;
+
 		} else {		
 			$newBaseload = 0;
+			$newBaseloadDebug = 5;
 		}	
 
 		$currentInvBaseload = round($currentBaseload) * 10;
@@ -211,6 +225,13 @@
 	
 // Vermogen op 0 indien schakeltijd negatief is
 		if ($schedule == 0) {
+			$newBaseload = 0;
+			$newInvBaseload = 0;
+		}
+		
+	
+// Vermogen op 0 indien failsave actief is
+		if ($failsave == 'On') {
 			$newBaseload = 0;
 			$newInvBaseload = 0;
 		}
@@ -273,8 +294,29 @@
 		if ($debug == 'yes'){
 			
 			echo '-/- EcoFlow Inverter  -\-'.PHP_EOL;
+		if ($failsave == 'On') {
+			echo ' -- Failsave           : ON!'.PHP_EOL;
+			echo ' '.PHP_EOL;
+		}
 			echo ' -- Huidige Baseload   : '.$currentBaseload.'w'.PHP_EOL;
 			echo ' -- Nieuwe  Baseload   : '.$newBaseload.'w'.PHP_EOL;
+			
+			if ($newBaseloadDebug == 1) {
+			echo ' -- Baseload run       : 1'.PHP_EOL;
+
+			} elseif ($newBaseloadDebug == 2) {
+			echo ' -- Baseload run       : 2'.PHP_EOL;
+
+			} elseif ($newBaseloadDebug == 3) {
+			echo ' -- Baseload run       : 3'.PHP_EOL;
+
+			} elseif ($newBaseloadDebug == 4) {
+			echo ' -- Baseload runs      : 4'.PHP_EOL;
+
+			} elseif ($newBaseloadDebug == 5) {
+			echo ' -- Baseload run       : 5'.PHP_EOL;
+
+			}
 		}
 	
 // Update Baseload
