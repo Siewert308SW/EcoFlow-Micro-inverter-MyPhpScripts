@@ -6,7 +6,7 @@
 //                                                           //
 
 // Debug?
-$debug					= 'yes';								 // Waarde 'yes' of 'no'.
+$debug					= 'no';							         // Waarde 'yes' of 'no'.
 
 // Homewizard variables
 $hwP1IP 				= 'homewizardP1IP'; 			     	 // IP Homewizard P1 Meter
@@ -243,7 +243,7 @@ $ecoflowSerialNumber 	= ['HWXXXXXXXXXXXXXX',];				 // Powerstream serie nummer
 //
 
 // Lader AAN bij genoeg zonnestroom en Batt% onder x.x%
-	if ($charger == 'Off' && $P1Usage <= $maxPowerReturn && $currentBaseload == 0 && $pvAvInputVoltage <= 26.2 && $pvInputTotalWatts == 0 && $powerBreach == 0) {
+	if ($charger == 'Off' && $P1Usage <= $maxPowerReturn && $currentBaseload == 0 && $pvAvInputVoltage < 26.1 && $pvInputTotalWatts == 0 && $powerBreach == 0) {
 		if ($debug == 'yes'){
 		echo ' -- Lader ingeschakeld'.PHP_EOL;
 		}
