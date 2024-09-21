@@ -6,7 +6,7 @@
 //                                                           //
 
 // Debug?
-	$debug					= 'yes';								 // Waarde 'yes' of 'no'.
+	$debug					= 'no';								     // Waarde 'yes' of 'no'.
 
 // Omvormer variables
 	$keepSomeCapacity 		= 'yes'; 								 // waarde 'yes' of 'no'. Bij 'yes' blijft onderstaande voltage in de batterij over, bij 'no' wordt de accu leeggetrokken, totdat BMS in werking treedt 
