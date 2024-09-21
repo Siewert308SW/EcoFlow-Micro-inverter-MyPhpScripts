@@ -36,7 +36,7 @@ Zo had ik al het Homewizard en Raspberry gebeuren al in huis.<br />
 Toch zet ik de hele lijst hier neer om een idee van de kosten te krijgen.<br />
 Nogmaals, kan zijn dat jij andere oplossing hebt voor het uitlezen van de P1 en zonnepanelen.<br />
 <br />
-# MyEcoFlow Micro-Inverter onderdelen
+# Onderdelen
 - Ecoflow Micro-Inverter 800w       	=  €118<br />
 - Ecoflow Smart Cooling Deck        	=    39<br />
 - Powerqueen 25.6volt LiFepo4 100ah 	=   500<br />
