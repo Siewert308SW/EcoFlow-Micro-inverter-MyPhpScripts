@@ -206,9 +206,9 @@
 			$newBaseload = ($realUsage) - $ecoflowOutputOffSet;
 			$newBaseloadDebug = 3;
 			
-		} elseif ($realUsage >= $ecoflowMaxOutput && $hwP1Usage > 0 && $hwP1Usage < $ecoflowMaxOutput) {
+		} elseif ($realUsage >= $ecoflowMaxOutput && $hwP1Usage > -85 && $hwP1Usage < $ecoflowMaxOutput) {
 			$newBaseload = ($hwP1Usage) - $ecoflowOutputOffSet;
-			if ($newBaseload >= 200){
+			if ($newBaseload > $ecoflowOutputOffSet){
 			$newBaseload = ($hwP1Usage) - $ecoflowOutputOffSet;
 			} else {
 			$newBaseload = 0;
