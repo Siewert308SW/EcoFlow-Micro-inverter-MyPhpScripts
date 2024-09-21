@@ -257,7 +257,7 @@ $ecoflowSerialNumber 	= ['HWXXXXXXXXXXXXXX',];				 // Powerstream serie nummer
 		switchDevice($chargerIDX, 'Off');
 		
 // Lader UIT wanneer batterij vol is
-	} elseif ($charger == 'On' && $pvAvInputVoltage > 26.2 && $chargerWatts <= 5.6) {
+	} elseif ($charger == 'On' && $pvAvInputVoltage >= 26.6 && $chargerWatts <= 5.6) {
 		if ($debug == 'yes'){
 		echo ' -- Lader uitgeschakeld, Batterij vol!'.PHP_EOL;
 		}
