@@ -105,5 +105,10 @@ En de extra kleinere lader is om eerder te kunnen beginnen met laden en bij spri
 # MyEcoFlow Micro-Inverter thuisbatterij
 # Screenshots:
 <br />
-Binnenkort wat screenshots van het verbruik, opbrengst en setup.
+Binnenkort wat screenshots van het verbruik, opbrengst en setup.<br /><br />
+
+
+https://github.com/user-attachments/assets/67f3f522-5b3e-480c-b5ad-277477704de5
+
+
 <br />
