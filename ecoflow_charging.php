@@ -23,8 +23,8 @@ $bedroomWattsIDX 		= 'idx'; 								 // watts-meter tbv slaapkamer in Domoticz
 $voltageIDX 			= 'idx'; 								 // Voltage-meter in Domoticz
 
 // Lader/Batterij variables
-$minBatteryVoltage 		= 23.1; 								 // Minimale Voltage wat in de accu moet blijven.
-$maxPowerReturn			= -600;									 // Minimale Wattage teruglevering wanneer de lader moet starten
+$minBatteryVoltage 		= 23.0; 								 // Minimale Voltage wat in de accu moet blijven.
+$maxPowerReturn			= -500;									 // Minimale Wattage teruglevering wanneer de lader moet starten
 $maxPowerUsage			= 250;									 // Maximale Wattage verbruik wanneer de lader moet stoppen
 
 // Ecoflow Powerstream API variables
@@ -243,16 +243,22 @@ $ecoflowSerialNumber 	= ['HWXXXXXXXXXXXXXX',];				 // Powerstream serie nummer
 //
 
 // Lader AAN bij genoeg zonnestroom en Batt% onder x.x%
-	if ($charger == 'Off' && $P1Usage <= $maxPowerReturn && $currentBaseload == 0 && $pvAvInputVoltage < 26.1 && $pvInputTotalWatts == 0 && $powerBreach == 0) {
+	if ($charger == 'Off' && $P1Usage <= $maxPowerReturn && $currentBaseload == 0 && $pvAvInputVoltage < 25.0 && $pvInputTotalWatts == 0 && $powerBreach == 0) {
 		if ($debug == 'yes'){
 		echo ' -- Lader ingeschakeld'.PHP_EOL;
 		}
 		switchDevice($chargerIDX, 'On');
 
 // Lader UIT wanneer er niet genoeg stroom word opgewekt door de PV en lader is aan het laden
-	} elseif ($charger == 'On' && $P1Usage >= $maxPowerUsage && $powerBreach == 1) {
+	} elseif ($charger == 'On' && $P1Usage >= $maxPowerReturn && $PVProduction != 0 && $powerBreach == 1) {
 		if ($debug == 'yes'){
 		echo ' -- Lader uitgeschakeld, geen zonnestroom genoeg!'.PHP_EOL;
+		}
+		switchDevice($chargerIDX, 'Off');
+
+	} elseif ($charger == 'On' && $P1Usage >= $maxPowerUsage && $PVProduction == 0 && $powerBreach == 1) {
+		if ($debug == 'yes'){
+		echo ' -- Lader uitgeschakeld, geen zonnestroom meer!'.PHP_EOL;
 		}
 		switchDevice($chargerIDX, 'Off');
 		
