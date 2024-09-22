@@ -12,11 +12,20 @@
 // Tijd variables
 	$invStartTime 		  = '00:00';							   // Tijd dat de omvormer mag starten met terugleveren
 	$invEndTime  		  = '14:00'; 							   // Tijd dat de omvormer moet stoppen met terugleveren
+	$runInfinite		  = 'yes';
 
+	$latitude				= '00.00000';							 // Latitude is de afstand – noord of zuid – tot de evenaar
+	$longitude				= '-0.00000';							 // Longitude is de afstand in graden oost of west tot de Meridiaan in Greenwich
+	$zenitLat				= '89.5';								 // Het hoogste punt van de hemel gezien vanuit het punt waar de waarnemer staat
+	$zenitLong				= '91.7';								 // Het hoogste punt van de hemel gezien vanuit het punt waar de waarnemer staat
+	$gmt					= '1';									 // GMT time '1' = true - '0'= false voor UTC
+	$timezone				= 'Europe/Amsterdam';					 // Mijn php.ini slikt de timezone niet dus dan maar handmatig instelling
+	
 // Omvormer variables
-	$ecoflowMaxOutput 	  = 600; 				    			   // Maximale aantal output Watts wat de omvormer kan leveren. 
-	$ecoflowOutputOffSet  = 10;									   // Trek deze value (watts) af van de nieuwe baseload, Deze value wordt alsnog van het net wordt getrokken om teruglevering te voorkomen
-	$minBatteryVoltage 	  = 23.1; 								   // Minimale Voltage wat in de accu moet blijven
+	$ecoflowMaxOutput 	  = 650; 				    			   // Maximale aantal output Watts wat de omvormer kan leveren. 
+	$ecoflowOutputOffSet  = 15;									   // Trek deze value (watts) af van de nieuwe baseload, Deze value wordt alsnog van het net wordt getrokken om teruglevering te voorkomen
+	$minBatteryVoltage 	  = 23.0; 								   // Minimale Voltage wat in de accu moet blijven
+	$minNightBatteryVolt  = 24.4; 								   // Minimale Voltage wat in de accu moet blijven voor de nacht
 
 // Homewizard variables
 	$hwP1IP 			  = 'homewizardP1IP'; 					   // IP Homewizard P1 Meter
@@ -46,7 +55,7 @@
 	include(''.$ecoflowPath.'ecoflow-api-class.php');
 
 // php.ini slikt de timezone niet
-	date_default_timezone_set('Europe/Amsterdam');
+	date_default_timezone_set(''.$timezone.'');
 
 // Tijd nu
 	$timeNow = date('H:i');
@@ -177,60 +186,102 @@
 			
 		if (json_last_error() === JSON_ERROR_NONE) {
 		
-// Schakeltijd			
-		if (date('H:i') >= ( ''.$invStartTime.'' ) && date('H:i') <= ( ''.$invEndTime.'' )) {
+// Schakeltijd
+
+		$sunrise = (date_sunrise(time(),SUNFUNCS_RET_STRING,$latitude,$longitude,$zenitLat,$gmt));
+		$sunset  = (date_sunset(time(),SUNFUNCS_RET_STRING,$latitude,$longitude,$zenitLong,$gmt));
+		
+		if ($runInfinite == 'no' && date('H:i') >= ( ''.$invStartTime.'' ) && date('H:i') <= ( ''.$invEndTime.'' )) {
 			$schedule = 1;
-		} elseif (date('H:i') < ( ''.$invStartTime.'' ) && date('H:i') > ( ''.$invEndTime.'' ) && $home == 'Off' && $pvAvInputVoltage >= 24.55) {
+			$scheduleInf = 0;
+		} elseif ($runInfinite == 'yes' && date('H:i') >= ( ''.$sunrise.'' ) && date('H:i') <= ( ''.$sunset.'' ) && $pvAvInputVoltage >= $minNightBatteryVolt) {
 			$schedule = 1;
+			$scheduleInf = 1;
+		} elseif ($runInfinite == 'yes' && date('H:i') >= ( ''.$sunset.'' ) && date('H:i') <= ( '23:59' )) {
+			$schedule = 1;
+			$scheduleInf = 1;
+		} elseif ($runInfinite == 'yes' && date('H:i') >= ( '00:00' ) && date('H:i') <= ( ''.$sunrise.'' )) {
+			$schedule = 1;
+			$scheduleInf = 0;
 		} else {
 			$schedule = 0;
+			$scheduleInf = 0;
 		}
 
 // Bepaal de nieuwe baseload
 		if ($charger == 'On') {
-		$productionTotal = $PVProduction;
+		$productionTotal	= $PVProduction;
 		} else {
-		$productionTotal = ($PVProduction + $SocketProduction);
+		$productionTotal	= ($PVProduction + $SocketProduction);
 		}
-		$realUsage       = ($hwP1Usage - $productionTotal);
+		$realUsage			= ($hwP1Usage - $productionTotal);
+		$productionTotalRef = abs($PVProduction + $SocketProduction);
+		$SocketProductionRef= abs($SocketProduction);
+		$realUsageRef		= ($realUsage - $productionTotalRef) + $SocketProductionRef;	
 		
-		if ($hwP1Usage >= $ecoflowMaxOutput && $pvAvInputVoltage >= 24.55) {
+		if ($hwP1Usage >= $ecoflowMaxOutput) {
+			if ($scheduleInf == 0){
 			$newBaseload = $ecoflowMaxOutput;
 			$newBaseloadDebug = 1;
-			
-		} elseif ($hwP1Usage >= $ecoflowMaxOutput && $pvAvInputVoltage < 24.55) {
-			$newBaseload = 300;
-			$newBaseloadDebug = 2;
-			
-		} elseif ($realUsage < $ecoflowMaxOutput && $hwP1Usage > -85 && $hwP1Usage < $ecoflowMaxOutput) {
-			$newBaseload = ($realUsage) - $ecoflowOutputOffSet;
-			$newBaseloadDebug = 3;
-			
-		} elseif ($realUsage >= $ecoflowMaxOutput && $hwP1Usage > -85 && $hwP1Usage < $ecoflowMaxOutput) {
-			$newBaseload = ($hwP1Usage) - $ecoflowOutputOffSet;
-			if ($newBaseload > $ecoflowOutputOffSet){
-			$newBaseload = ($hwP1Usage) - $ecoflowOutputOffSet;
-			} else {
-			$newBaseload = 0;
+			} elseif ($scheduleInf == 1){
+			$newBaseload = round($ecoflowMaxOutput) / 2;
+			$newBaseloadDebug = 1;				
 			}
-			$newBaseloadDebug = 4;
 
-		} elseif ($realUsage >= $ecoflowMaxOutput && $hwP1Usage > 0 && $hwP1Usage >= $ecoflowMaxOutput && $pvAvInputVoltage >= 24.55) {
+		} elseif ($realUsage < $ecoflowMaxOutput && $hwP1Usage < $ecoflowMaxOutput && $PVProduction == 0) {
+			if ($scheduleInf == 0){
+			$newBaseload = ($realUsageRef) - $ecoflowOutputOffSet;
+			$newBaseloadDebug = 2;
+			} elseif ($scheduleInf == 1){
+			$newBaseload = round($realUsageRef) / 2;
+			$newBaseloadDebug = 2;		
+			}
+
+		} elseif ($realUsage < $ecoflowMaxOutput && $hwP1Usage < $ecoflowMaxOutput && $PVProduction != 0) {
+			if ($scheduleInf == 0){
+			$newBaseload = ($realUsageRef) - $ecoflowOutputOffSet;
+			$newBaseloadDebug = 3;
+			} elseif ($scheduleInf == 1){
+			$newBaseload = round($realUsageRef - $ecoflowOutputOffSet) / 2;
+			$newBaseloadDebug = 3;		
+			}			
+
+		} elseif ($realUsage >= $ecoflowMaxOutput && $hwP1Usage < $ecoflowMaxOutput) {
+			if ($scheduleInf == 0){
+			$newBaseload = ($realUsageRef) - $ecoflowOutputOffSet;
+				if ($newBaseload >= 600){
+				$newBaseload = $ecoflowMaxOutput;		
+				} else {
+				$newBaseload = ($realUsageRef) - $ecoflowOutputOffSet;
+				}
+			$newBaseloadDebug = 3;
+			} elseif ($scheduleInf == 1){
+			$newBaseload = round($realUsageRef - $ecoflowOutputOffSet) / 2;
+			$newBaseloadDebug = 3;				
+			}
+
+		} elseif ($realUsage >= $ecoflowMaxOutput && $hwP1Usage >= $ecoflowMaxOutput) {
+			if ($scheduleInf == 0){
 			$newBaseload = $ecoflowMaxOutput;
-			$newBaseloadDebug = 5;
-
-		} elseif ($realUsage >= $ecoflowMaxOutput && $hwP1Usage > 0 && $hwP1Usage >= $ecoflowMaxOutput && $pvAvInputVoltage >= 24.55) {
-			$newBaseload = 300;
-			$newBaseloadDebug = 6;
+			$newBaseloadDebug = 4;
+			} elseif ($scheduleInf == 1){
+			$newBaseload = round($ecoflowMaxOutput) / 2;
+			$newBaseloadDebug = 4;				
+			}
 
 		} else {		
 			$newBaseload = 0;
-			$newBaseloadDebug = 7;
+			$newBaseloadDebug = 5;
 		}	
 
-		$currentInvBaseload = round($currentBaseload) * 10;
 		$newInvBaseload = round($newBaseload) * 10;
-			
+
+// Vermogen op 0 indien baseload negatief is
+		if ($realUsageRef <= -1) {
+			$newBaseload = 0;
+			$newInvBaseload = 0;
+		}
+		
 // Vermogen op 0 indien oplader actief is
 		if ($charger == 'On') {
 			$newBaseload = 0;
@@ -264,6 +315,13 @@
 			echo ' '.PHP_EOL;
 		}
 
+// Print Batterij Status
+		if ($debug == 'yes'){	
+			echo '-/- Batterij          -\-'.PHP_EOL;
+			echo ' -- Batterij Voltage   : '.$pvAvInputVoltage.'v'.PHP_EOL;
+			echo ' '.PHP_EOL;
+		}
+		
 // Print Lader Status
 		if ($debug == 'yes'){
 			echo '-/- Lader             -\-'.PHP_EOL;
@@ -275,28 +333,25 @@
 // Print Schakeltijd
 		if ($debug == 'yes'){
 			echo '-/- Schakeltijd       -\-'.PHP_EOL;
+			
+			if ($runInfinite == 'no'){
 			echo ' -- Start Tijd         : '.$invStartTime.''.PHP_EOL;
 			echo ' -- Eind Tijd          : '.$invEndTime.''.PHP_EOL;
-			
-		if ($schedule = 1) {
-			echo ' -- Schakeltijd        : true'.PHP_EOL;
-			echo ' '.PHP_EOL;
-		} else {
-			echo ' -- Schakeltijd        : false'.PHP_EOL;
-			echo ' '.PHP_EOL;
-		}
-		}
-		
-// Print Batterij Status
-		if ($debug == 'yes'){	
-			echo '-/- Batterij          -\-'.PHP_EOL;
-			echo ' -- Batterij Voltage   : '.$pvAvInputVoltage.'v'.PHP_EOL;
-			echo ' '.PHP_EOL;
+				if ($schedule == 1) {
+				echo ' -- Schakeltijd        : true'.PHP_EOL;
+				} else {
+				echo ' -- Schakeltijd        : false'.PHP_EOL;
+				}
+			} else {
+				echo ' -- Schakeltijd        : continue'.PHP_EOL;	
+			}
+			echo ' '.PHP_EOL;		
 		}
 	
 // Print Energie Status
 		if ($debug == 'yes'){
 			echo '-/- Energie           -\-'.PHP_EOL;
+			echo ' -- $realUsageRef      : '.$realUsageRef.''.PHP_EOL;
 			echo ' -- P1 Verbruik        : '.$hwP1Usage.'w'.PHP_EOL;
 			echo ' -- PV Opwek           : '.$PVProduction.'w'.PHP_EOL;
 			echo ' -- Batterij Opwek     : '.$SocketProduction.'w'.PHP_EOL;
@@ -334,12 +389,6 @@
 
 			} elseif ($newBaseloadDebug == 5) {
 			echo ' -- Baseload run       : 5'.PHP_EOL;
-
-			} elseif ($newBaseloadDebug == 6) {
-			echo ' -- Baseload run       : 6'.PHP_EOL;
-
-			} elseif ($newBaseloadDebug == 7) {
-			echo ' -- Baseload run       : 7'.PHP_EOL;
 
 			}
 		}
