@@ -106,7 +106,5 @@ En de extra kleinere lader is om eerder te kunnen beginnen met laden en bij spri
 # Screenshots:
 <br />
 Binnenkort wat screenshots van het verbruik, opbrengst en setup.<br />
-https://github.com/user-attachments/assets/55d0242f-9283-4a27-a187-f60fa5fb3248<br />
-![Thuisbatterij_Vandaag](https://github.com/user-attachments/assets/cb16502e-5c6b-4f5a-9658-bb2d24b835b1)<br />
-![Thuisbatterij_Terminal](https://github.com/user-attachments/assets/c8e93700-88c8-4687-8633-07710c4cd12a)<br />
+https://github.com/user-attachments/assets/55d0242f-9283-4a27-a187-f60fa5fb3248
 <br />
