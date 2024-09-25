@@ -11,19 +11,11 @@
 
 // Tijd variables
 	$invStartTime 		  = '00:00';							   // Tijd dat de omvormer mag starten met terugleveren
-	$invEndTime  		  = '14:00'; 							   // Tijd dat de omvormer moet stoppen met terugleveren
-	$runInfinite		  = 'yes';								   // Waarde 'yes' of 'no'. Bij 'yes' zal de omvormer de hele dag bij springen
-
-	$latitude			  = '00.00000';							   // Latitude is de afstand – noord of zuid – tot de evenaar
-	$longitude			  = '-0.00000';							   // Longitude is de afstand in graden oost of west tot de Meridiaan in Greenwich
-	$zenitLat			  = '89.5';								   // Het hoogste punt van de hemel gezien vanuit het punt waar de waarnemer staat
-	$zenitLong			  = '91.7';								   // Het hoogste punt van de hemel gezien vanuit het punt waar de waarnemer staat
-	$gmt				  = '1';								   // GMT time '1' = true - '0'= false voor UTC
-	$timezone			  = 'Europe/Amsterdam';					   // Mijn php.ini slikt de timezone niet dus dan maar handmatig instelling
+	$invEndTime  		  = '12:00'; 							   // Tijd dat de omvormer moet stoppen met terugleveren
 	
 // Omvormer variables
-	$ecoflowMaxOutput 	  = 650; 				    			   // Maximale aantal output Watts wat de omvormer kan leveren. 
-	$ecoflowOutputOffSet  = 15;									   // Trek deze value (watts) af van de nieuwe baseload, Deze value wordt alsnog van het net wordt getrokken om teruglevering te voorkomen
+	$ecoflowMaxOutput 	  = 600; 				    			   // Maximale aantal output Watts wat de omvormer kan leveren. 
+	$ecoflowOutputOffSet  = 10;									   // Trek deze value (watts) af van de nieuwe baseload, Deze value wordt alsnog van het net wordt getrokken om teruglevering te voorkomen
 	$minBatteryVoltage 	  = 23.0; 								   // Minimale Voltage wat in de accu moet blijven
 	$minNightBatteryVolt  = 24.4; 								   // Minimale Voltage wat in de accu moet blijven voor de nacht
 
@@ -33,11 +25,9 @@
 	$hwSocketIP 		  = 'homewizardEnergySocketMeter';         // IP Homewizard EnergySocket Meter (gekoppeld aand de omvormer)
 	
 // Domoticz variables
-	$domoticzIP 		  = 'domoticzIP:port'; 			    	   // IP + poort van Domoticz
-	$chargerIDX 		  = 'idx'; 							       // On/Off switch lader in Domoticz
-	$chargerUsageIDX 	  = 'idx'; 							       // Verbruik lader in Domoticz
-	$homeIDX 	 	      = 'idx'; 							   	   // Iemand thuis status in Domoticz
-	$failSaveIDX 		  = 'idx'; 							   
+	$domoticzIP 		  = '192.168.178.4:8080'; 				   // IP + poort van Domoticz
+	$chargerIDX 		  = '2918'; 							   // On/Off switch lader in Domoticz
+	$chargerUsageIDX 	  = '2927'; 							   // Verbruik lader in Domoticz
 	
 // Ecoflow Powerstream API variables
 	$ecoflowPath 		  = '/path/to/files/';                     // Path waar je scripts zich bevinden
@@ -55,11 +45,11 @@
 	include(''.$ecoflowPath.'ecoflow-api-class.php');
 
 // php.ini slikt de timezone niet
-	date_default_timezone_set(''.$timezone.'');
+	date_default_timezone_set('Europe/Amsterdam');
 
 // Tijd nu
 	$timeNow = date('H:i');
-
+	
 // Get EcoFlow Status
 	$ecoflow = new EcoFlowAPI(''.$ecoflowAccessKey.'', ''.$ecoflowSecretKey.'');
 	$serial_number = file_get_contents(''.$ecoflowPath.'serialnumber.txt');	
@@ -98,13 +88,10 @@
 		
 // Domoticz URLs
 	$DomoticzJsonUrl 	  = 'http://'.$domoticzIP.'/json.htm?type=command&param=getdevices&rid=';
-	$DomoticzJsonResult   = ['charger' => $DomoticzJsonUrl . $chargerIDX,'failsave' => $DomoticzJsonUrl . $failSaveIDX,'chargerUsage' => $DomoticzJsonUrl . $chargerUsageIDX];
+	$DomoticzJsonResult   = ['charger' => $DomoticzJsonUrl . $chargerIDX,'chargerUsage' => $DomoticzJsonUrl . $chargerUsageIDX];
 		
 // Get Lader status
 	$charger 			  = json_decode(file_get_contents($DomoticzJsonResult['charger']), true)['result'][0]['Status'] ?? 'Off';
-
-// Get Failsave status
-	$failsave 			  = json_decode(file_get_contents($DomoticzJsonResult['failsave']), true)['result'][0]['Status'] ?? 'Off';
 	
 // Get huidige Lader verbruik in Domoticz
 	$chargerUsage_data    = json_decode(file_get_contents($DomoticzJsonResult['chargerUsage']), true);
@@ -156,118 +143,45 @@
 	else {
     $hwSocketProductionDecode = json_decode($hwSocketresult);
 	$SocketInvProduction = round($hwSocketProductionDecode->active_power_w);
-		  
-	if ($charger == 'On' && $chargerUsage > 0) {
-		$SocketProduction = 0;
-	} else {
-
+	
 		if ($SocketInvProduction > 0) {
 		$SocketProduction = 0;
 		} else {
 		$SocketProduction = ($SocketInvProduction);
-			}
 		}
 	}
-			
-	if (json_last_error() === JSON_ERROR_NONE) {
-		
-// Schakeltijd
-	if ($runInfinite == 'yes'){
-	$sunrise = (date_sunrise(time(),SUNFUNCS_RET_STRING,$latitude,$longitude,$zenitLat,$gmt));
-	$sunset  = (date_sunset(time(),SUNFUNCS_RET_STRING,$latitude,$longitude,$zenitLong,$gmt));
-	}
 	
-	if ($runInfinite == 'no' && date('H:i') >= ( ''.$invStartTime.'' ) && date('H:i') <= ( ''.$invEndTime.'' )) {
+	if (json_last_error() === JSON_ERROR_NONE) {
+
+// Schakeltijd
+	if (date('H:i') >= ( ''.$invStartTime.'' ) && date('H:i') <= ( ''.$invEndTime.'' ) && $PVProduction == 0) {
 		$schedule = 1;
-		$scheduleInf = 0;
-	} elseif ($runInfinite == 'yes' && date('H:i') >= ( ''.$sunrise.'' ) && date('H:i') <= ( ''.$sunset.'' ) && $pvAvInputVoltage >= $minNightBatteryVolt) {
-		$schedule = 1;
-		$scheduleInf = 1;
-	} elseif ($runInfinite == 'yes' && date('H:i') >= ( ''.$sunset.'' ) && date('H:i') <= ( '23:59' )) {
-		$schedule = 1;
-		$scheduleInf = 1;
-	} elseif ($runInfinite == 'yes' && date('H:i') >= ( '00:00' ) && date('H:i') <= ( ''.$sunrise.'' )) {
-		$schedule = 1;
-		$scheduleInf = 0;
 	} else {
 		$schedule = 0;
-		$scheduleInf = 0;
 	}
 
 // Bepaal de nieuwe baseload
-	if ($charger == 'On') {
-	$productionTotal	= $PVProduction;
-	} else {
 	$productionTotal	= ($PVProduction + $SocketProduction);
-	}
-	
 	$realUsage			= ($hwP1Usage - $productionTotal);
-	$productionTotalRef = abs($PVProduction + $SocketProduction);
-	$SocketProductionRef= abs($SocketProduction);
-	$realUsageRef		= ($realUsage - $productionTotalRef) + $SocketProductionRef;	
+	
+	if ($hwP1Usage <= 0) {
+		$newLoad = ($hwP1Usage + $currentBaseload) - $ecoflowOutputOffSet;
 		
-	if ($hwP1Usage >= $ecoflowMaxOutput) {
-		if ($scheduleInf == 0){
-		$newBaseload = $ecoflowMaxOutput;
-		$newBaseloadDebug = 1;
-		} elseif ($scheduleInf == 1){
-		$newBaseload = round($ecoflowMaxOutput) / 2;
-		$newBaseloadDebug = 1;				
-		}
+	} elseif ($hwP1Usage > 0 && $hwP1Usage <= $ecoflowMaxOutput){
+		$newLoad = ($hwP1Usage + $currentBaseload) - $ecoflowOutputOffSet;
+		
+	}elseif ($hwP1Usage > $ecoflowMaxOutput){
+		$newLoad = 600;
+		
+	}		
 
-	} elseif ($realUsage < $ecoflowMaxOutput && $hwP1Usage < $ecoflowMaxOutput && $PVProduction == 0) {
-		if ($scheduleInf == 0){
-		$newBaseload = round($realUsageRef) - $ecoflowOutputOffSet;
-		$newBaseloadDebug = 2;
-		} elseif ($scheduleInf == 1){
-		$newBaseload = round($realUsageRef) / 2;
-		$newBaseloadDebug = 2;		
-		}
-
-	} elseif ($realUsage < $ecoflowMaxOutput && $hwP1Usage < $ecoflowMaxOutput && $PVProduction != 0) {
-		if ($scheduleInf == 0){
-		$newBaseload = round($realUsageRef) - $ecoflowOutputOffSet;
-		$newBaseloadDebug = 3;
-		} elseif ($scheduleInf == 1){
-		$newBaseload = round($realUsageRef - $ecoflowOutputOffSet) / 2;
-		$newBaseloadDebug = 3;		
-		}			
-
-	} elseif ($realUsage >= $ecoflowMaxOutput && $hwP1Usage < $ecoflowMaxOutput) {
-		if ($scheduleInf == 0){
-		$newBaseload = round($realUsageRef) - $ecoflowOutputOffSet;
-			if ($newBaseload >= 600){
-			$newBaseload = $ecoflowMaxOutput;		
-			} else {
-			$newBaseload = round($realUsageRef) - $ecoflowOutputOffSet;
-			}
-		$newBaseloadDebug = 3;
-		} elseif ($scheduleInf == 1){
-		$newBaseload = round($realUsageRef - $ecoflowOutputOffSet) / 2;
-		$newBaseloadDebug = 3;				
-		}
-
-	} elseif ($realUsage >= $ecoflowMaxOutput && $hwP1Usage >= $ecoflowMaxOutput) {
-		if ($scheduleInf == 0){
-		$newBaseload = $ecoflowMaxOutput;
-		$newBaseloadDebug = 4;
-		} elseif ($scheduleInf == 1){
-		$newBaseload = round($ecoflowMaxOutput) / 2;
-		$newBaseloadDebug = 4;				
-		}
-
-	} else {		
+	if ($newLoad <= 0){
 		$newBaseload = 0;
-		$newBaseloadDebug = 5;
-	}	
-
-	$newInvBaseload = round($newBaseload) * 10;
-
-// Vermogen op 0 indien baseload negatief is
-	if ($realUsageRef <= -1) {
-		$newBaseload = 0;
-		$newInvBaseload = 0;
+	} elseif ($newLoad > 0){
+		$newBaseload = $newLoad;
 	}
+		
+	$newInvBaseload = round($newBaseload) * 10;
 		
 // Vermogen op 0 indien oplader actief is
 	if ($charger == 'On') {
@@ -283,12 +197,6 @@
 	
 // Vermogen op 0 indien schakeltijd negatief is
 	if ($schedule == 0) {
-		$newBaseload = 0;
-		$newInvBaseload = 0;
-	}
-		
-// Vermogen op 0 indien failsave actief is
-	if ($failsave == 'On') {
 		$newBaseload = 0;
 		$newInvBaseload = 0;
 	}
@@ -311,29 +219,27 @@
 		echo ' -- Lader              : '.$charger.''.PHP_EOL;
 		echo ' -- Lader Verbruik     : '.$chargerUsage.'w'.PHP_EOL;
 		echo ' '.PHP_EOL;
-		
+
 // Print Schakeltijd
+	if ($debug == 'yes'){
 		echo '-/- Schakeltijd       -\-'.PHP_EOL;
-		
-		if ($runInfinite == 'no'){
 		echo ' -- Start Tijd         : '.$invStartTime.''.PHP_EOL;
 		echo ' -- Eind Tijd          : '.$invEndTime.''.PHP_EOL;
-			if ($schedule == 1) {
-			echo ' -- Schakeltijd        : true'.PHP_EOL;
-			} else {
-			echo ' -- Schakeltijd        : false'.PHP_EOL;
-			}
+		if ($schedule == 1) {
+		echo ' -- Schakeltijd        : true'.PHP_EOL;
 		} else {
-		echo ' -- Schakeltijd        : continue'.PHP_EOL;	
+		echo ' -- Schakeltijd        : false'.PHP_EOL;
 		}
 		echo ' '.PHP_EOL;		
-	
+		}
+		
 // Print Energie Status
 		echo '-/- Energie           -\-'.PHP_EOL;
 		echo ' -- P1 Verbruik        : '.$hwP1Usage.'w'.PHP_EOL;
 		echo ' -- PV Opwek           : '.$PVProduction.'w'.PHP_EOL;
 		echo ' -- Batterij Opwek     : '.$SocketProduction.'w'.PHP_EOL;
 		echo ' -- Echte Verbruik     : '.$realUsage.'w'.PHP_EOL;
+		echo ' '.PHP_EOL;
 		if ($newBaseload != 0) {
 		echo ' -- Stroom vraag       : true'.PHP_EOL;
 		} else {
@@ -344,10 +250,6 @@
 // Print Nieuwe Baseload
 		
 		echo '-/- EcoFlow Inverter  -\-'.PHP_EOL;
-		if ($failsave == 'On') {
-		echo ' -- Failsave           : ON!'.PHP_EOL;
-		echo ' '.PHP_EOL;
-		}
 		echo ' -- Huidige Baseload   : '.$currentBaseload.'w'.PHP_EOL;
 		echo ' -- Nieuwe  Baseload   : '.$newBaseload.'w'.PHP_EOL;
 	}
