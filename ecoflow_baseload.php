@@ -17,8 +17,7 @@
 	$ecoflowMaxOutput 	  = 600; 				    			   // Maximale aantal output Watts wat de omvormer kan leveren. 
 	$ecoflowOutputOffSet  = 10;									   // Trek deze value (watts) af van de nieuwe baseload, Deze value wordt alsnog van het net wordt getrokken om teruglevering te voorkomen
 	$minBatteryVoltage 	  = 23.0; 								   // Minimale Voltage wat in de accu moet blijven
-	$minNightBatteryVolt  = 24.4; 								   // Minimale Voltage wat in de accu moet blijven voor de nacht
-
+		
 // Homewizard variables
 	$hwP1IP 			  = 'homewizardP1IP'; 					   // IP Homewizard P1 Meter
 	$hwKwhIP 			  = 'homewizardKwhMeter';     			   // IP Homewizard Solar kwh Meter
@@ -153,24 +152,14 @@
 	
 	if (json_last_error() === JSON_ERROR_NONE) {
 
-// Schakeltijd
-	if (date('H:i') >= ( ''.$invStartTime.'' ) && date('H:i') <= ( ''.$invEndTime.'' ) && $PVProduction == 0) {
-		$schedule = 1;
-	} else {
-		$schedule = 0;
-	}
-
 // Bepaal de nieuwe baseload
 	$productionTotal	= ($PVProduction + $SocketProduction);
 	$realUsage			= ($hwP1Usage - $productionTotal);
 	
-	if ($hwP1Usage <= 0) {
+	if ($hwP1Usage <= $ecoflowMaxOutput){
 		$newLoad = ($hwP1Usage + $currentBaseload) - $ecoflowOutputOffSet;
 		
-	} elseif ($hwP1Usage > 0 && $hwP1Usage <= $ecoflowMaxOutput){
-		$newLoad = ($hwP1Usage + $currentBaseload) - $ecoflowOutputOffSet;
-		
-	}elseif ($hwP1Usage > $ecoflowMaxOutput){
+	} elseif ($hwP1Usage > $ecoflowMaxOutput){
 		$newLoad = 600;
 		
 	}		
@@ -181,8 +170,16 @@
 		$newBaseload = $newLoad;
 	}
 		
-	$newInvBaseload = round($newBaseload) * 10;
-		
+	$newInvBaseload 	= round($newBaseload) * 10;
+	
+// Schakeltijd
+	$newInfPVProduction	= abs($PVProduction);
+	if (date('H:i') >= ( ''.$invStartTime.'' ) && date('H:i') <= ( ''.$invEndTime.'' ) && $newInfPVProduction <= $realUsage) {
+		$schedule = 1;
+	} else {
+		$schedule = 0;
+	}
+	
 // Vermogen op 0 indien oplader actief is
 	if ($charger == 'On') {
 		$newBaseload = 0;
