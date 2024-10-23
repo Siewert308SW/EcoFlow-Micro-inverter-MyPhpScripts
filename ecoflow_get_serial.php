@@ -10,7 +10,7 @@
 
 // Omvormer variables
 	$keepSomeCapacity 		= 'yes'; 								 // waarde 'yes' of 'no'. Bij 'yes' blijft onderstaande voltage in de batterij over, bij 'no' wordt de accu leeggetrokken, totdat BMS in werking treedt 
-	$minBatteryVoltage 		= 230; 								     // Minimale Voltage wat in de accu moet blijven in hondertal.
+	$minBatteryVoltage 		= 225; 								     // Minimale Voltage wat in de accu moet blijven in hondertal.
 
 // Ecoflow Powerstream API variables
 	$ecoflowPath 			= '/path/to/files/';					 // Path waar de scripts zich bevinden
