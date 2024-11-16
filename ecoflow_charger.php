@@ -7,7 +7,7 @@
 //                                                               //
 
 // Debug?
-	$debug				   = 'no';							     // Waarde 'yes' of 'no'
+	$debug				   = 'yes';							     // Waarde 'yes' of 'no'
 
 // Tijd variables
 	$latitude              = '00.00000';						 // Latitude is de afstand – noord of zuid – tot de evenaar
@@ -26,7 +26,7 @@
 // Lader/Batterij variables
 	$minPowerOneReturn	   = -300;								 // Minimale teruglevering (Watt) wanneer de lader 1 mag starten
 	$minPowerTwoReturn	   = -600;								 // Minimale teruglevering (Watt) wanneer de lader 2 mag starten
-	$minSolarReturn		   = -900;							     // Minimale teruglevering (Watt), hierboven zal het laadscript alle variablen volgen, hierboven zal ongeacht het verbruik alle laders ingeschakeld houden 
+	$minSolarReturn		   = -1200;							     // Minimale teruglevering (Watt), hierboven zal het laadscript alle variablen volgen, hierboven zal ongeacht het verbruik alle laders ingeschakeld houden 
 	
 // Ecoflow Powerstream API variables
 	$ecoflowPath		   = '/path/to/files/';	                 // Path waar je scripts zich bevinden
@@ -95,6 +95,19 @@
 		}
 		exit(1);
 		}
+
+function writeBattState($state)
+{
+	global $ecoflowPath;
+    $filePath = ''.$ecoflowPath.'batteryState.txt';
+    $file = fopen($filePath, "w");
+    if ($file === false) {
+        die("Unable to open file!");
+    }
+    fwrite($file, $state);
+    fclose($file);
+}
+
 
 // Function GET HomeWizard data
 	function getHwData($ip) {
@@ -217,6 +230,14 @@
 	$maxPowerOneReturn	  = abs($minPowerOneReturn);
 	$maxPowerTwoReturn	  = abs($minPowerTwoReturn);
 	$P1ChargerUsage       = ($hwP1Usage - $chargerUsage);
+
+//Write battery State	
+	if ($pvAvInputVoltage <= 22.7) {
+	writeBattState('ontladen');
+	} elseif ($pvAvInputVoltage >= 26.0) {
+	writeBattState('opgeladen');
+	}
+	$batteryState = file_get_contents(''.$ecoflowPath.'batteryState.txt');
 	
 //															     //
 // **************************************************************//
@@ -234,6 +255,10 @@
 		
 		echo ' -/- Batterij                 -\-'.PHP_EOL;
 		echo '  -- Batterij Voltage          : '.$pvAvInputVoltage.'v'.PHP_EOL;
+		echo '  -- Batterij State            : '.$batteryState.''.PHP_EOL;
+		if ($batteryState != 'opgeladen' && $isDST == '0'){
+		echo '  -- Geen ontlading vandaag...'.PHP_EOL;
+		}
 		echo ' '.PHP_EOL;
 
 		echo ' -/- EcoFlow Omvormer         -\-'.PHP_EOL;
@@ -271,15 +296,9 @@
 
 	if ($P1ChargerUsage > $minPowerOneReturn || $hwSolarReturn >= $minPowerOneReturn || $chargerUsage <= 14 || $pvAvInputWatts != 0){
 
-		if (($ChargerOneStatus == 'On') && ($hwSolarReturn == 0 || $chargerUsage <= 14 || $pvAvInputWatts != 0 )){
+		if ($ChargerOneStatus == 'On' && $hwSolarReturn >= $minSolarReturn){
 		switchHwSocket('one','Off');
 		if ($debug == 'yes'){ echo ' -- Lader 1 uitgeschakeld'.PHP_EOL; }
-		sleep(5);
-		}
-		
-		if ($ChargerOneStatus == 'Off' && $hwSolarReturn != 0 && $pvAvInputVoltage < 26 && $pvAvInputWatts == 0){
-		switchHwSocket('one','On');
-		if ($debug == 'yes'){ echo ' -- Lader 1 ingeschakeld'.PHP_EOL; }
 		sleep(5);
 		}
 		
@@ -307,7 +326,7 @@
 
 	if (($P1ChargerUsage > $minPowerTotalReturn && $P1ChargerUsage <= $minPowerTwoReturn) && ($pvAvInputVoltage < 26 && $pvAvInputWatts == 0 && $hwSolarReturn <= $minPowerOneReturn)){
 
-		if ($ChargerTwoStatus == 'Off'){
+		if ($ChargerTwoStatus == 'Off' && $hwSolarReturn >= $minSolarReturn){
 		switchHwSocket('two','On');
 		if ($debug == 'yes'){ echo ' -- Lader 2 ingeschakeld'.PHP_EOL; }
 		sleep(5);
@@ -334,6 +353,7 @@
 		}
 		
 	}
+
 
 // Print Footer
 	if ($debug == 'yes'){
