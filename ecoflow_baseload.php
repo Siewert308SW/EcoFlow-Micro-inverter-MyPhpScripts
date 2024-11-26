@@ -23,7 +23,6 @@
 // Omvormer variables
 	$ecoflowMaxOutput	   = 600;								 // Maximale teruglevering (Watts) wat de omvormer kan/mag leveren. 
 	$ecoflowOutputOffSet   = 10;								 // Trek deze value (watts) af van de nieuwe baseload, Deze value wordt alsnog van het net wordt getrokken om teruglevering te voorkomen
-	//$ecoflowSolarOffset    = -600;								 // Maximale PV opwek, daarboven stopt de omvormer met terugleveren	
 	$maxInvTemp            = 65;								 // Maximale interne temperatuur, daarboven stopt de omvormer met terugleveren 
 			
 // Homewizard variables
@@ -186,15 +185,17 @@
 		}
 	}
 
-// HomeWizard SET/GET Variables
+// HomeWizard GET Variables
 	$hwP1Usage            = getHwData($hwP1IP);
 	$hwSolarReturn        = getHwData($hwKwhIP);
 	$hwInvReturn          = getHwData($hwEcoFlowIP);
 	$hwChargerOneUsage    = getHwData($hwChargerOneIP);
 	$hwChargerTwoUsage    = getHwData($hwChargerTwoIP);
+	$hwChargerThreeUsage  = getHwData($hwChargerThreeIP);
 	$ChargerOneStatus     = getHwStatus($hwChargerOneIP);
 	$ChargerTwoStatus     = getHwStatus($hwChargerTwoIP);
-
+	$ChargerThreeStatus   = getHwStatus($hwChargerThreeIP);
+	
 // SET/GET Usage Variables	
 	$productionTotal      = ($hwSolarReturn + $hwInvReturn);
 	$realUsage            = ($hwP1Usage - $productionTotal);
@@ -204,21 +205,27 @@
 	$sunrise              = (date_sunrise(time(),SUNFUNCS_RET_STRING,$latitude,$longitude,$zenitLat,$gmt));
 	$sunset               = (date_sunset(time(),SUNFUNCS_RET_STRING,$latitude,$longitude,$zenitLong,$gmt));
 
-	if ($runInfinity == 'no' && date('H:i') >= ( ''.$invStartTime.'' ) && date('H:i') <= ( ''.$invEndTime.'' )) {
-		$schedule	= 1;
+	if ($runInfinity == 'no' && date('H:i') >= ( ''.$invStartTime.'' ) && date('H:i') <= ( ''.$invEndTime.'' ) && $batteryState != 'leeg') {
+		$schedule = 1;
 		
-	} elseif ($runInfinity == 'yes' && date('H:i') >= ( '00:00' ) && date('H:i') <= ( ''.$sunrise.'' )) {
-		$schedule	= 1;	
+	} elseif ($runInfinity == 'yes' && date('H:i') >= ( '00:00' ) && date('H:i') <= ( ''.$sunrise.'' ) && $batteryState != 'leeg') {
+		$schedule = 1;	
 
-	} elseif ($runInfinity == 'yes' && date('H:i') > ( ''.$sunrise.'' ) && date('H:i') <= ( '23:59' ) && $hwP1Usage >= $ecoflowMaxOutput) {
-		$schedule	= 1;
+	} elseif ($runInfinity == 'yes' && date('H:i') > ( ''.$sunrise.'' ) && date('H:i') <= ( ''.$sunset.'' ) && $batteryState == 'geladen') {
+		$schedule = 1;
+	
+	} elseif ($runInfinity == 'yes' && date('H:i') > ( ''.$sunset.'' ) && date('H:i') <= ( '23:59' ) && $isDST == '1' && $batteryState != 'leeg') {
+		$schedule = 1;
+
+	} elseif ($runInfinity == 'yes' && date('H:i') > ( ''.$sunset.'' ) && date('H:i') <= ( '23:59' ) && $isDST == '0' && $batteryState == 'geladen') {
+		$schedule = 1;
 		
 	} else {
-		$schedule	= 0;	
+		$schedule = 0;	
 	}
 
 // Determine total charger usage
-	$chargerUsage = ($hwChargerOneUsage + $hwChargerTwoUsage);
+	$chargerUsage = ($hwChargerOneUsage + $hwChargerTwoUsage + $hwChargerThreeUsage);
 	
 // determine new baseload	
 	if ($hwP1Usage < $ecoflowMaxOutput){
@@ -244,7 +251,7 @@
 	}
 	
 // Set baseload to null when charging
-	if ($ChargerOneStatus == 'On' || $ChargerTwoStatus == 'On') {
+	if ($ChargerOneStatus == 'On' || $ChargerTwoStatus == 'On' || $ChargerThreeStatus == 'On') {
 		$newBaseload = 0;
 		$newInvBaseload = 0;
 	}
@@ -280,7 +287,7 @@
 	}
 
 // Set baseload to null when battery has not been fully charged during wintertime	
-	if ($isDST == '0' && $batteryState != 'opgeladen'){
+	if ($isDST == '0' && $batteryState == 'leeg'){
 		$newBaseload = 0;
 		$newInvBaseload = 0;
 	}	
@@ -297,6 +304,7 @@
 		echo ' -/- Laders                   -\-'.PHP_EOL;
 		echo '  -- Lader 1                   : '.$ChargerOneStatus.''.PHP_EOL;		
 		echo '  -- Lader 2                   : '.$ChargerTwoStatus.''.PHP_EOL;
+		echo '  -- Lader 3                   : '.$ChargerThreeStatus.''.PHP_EOL;
 		echo '  -- Laders Totaal-Verbruik    : '.$chargerUsage.'w'.PHP_EOL;		
 		echo ' '.PHP_EOL;
 
@@ -307,7 +315,7 @@
 		echo '  -- Batterij leeg!'.PHP_EOL;
 		}
 		echo '  -- Batterij State            : '.$batteryState.''.PHP_EOL;
-		if ($batteryState != 'opgeladen' && $isDST == '0'){
+		if ($batteryState != 'geladen' && $isDST == '0'){
 		echo '  -- Geen ontlading vandaag...'.PHP_EOL;
 		}
 		echo ' '.PHP_EOL;
