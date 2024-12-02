@@ -7,36 +7,37 @@
 //                                                               //
 
 // Debug?
-	$debug					= 'yes';								// Waarde 'yes' of 'no'
+	$debug				   = 'yes';								 // Waarde 'yes' of 'no'
 
 // Tijd variables
-	$invStartTime			= '00:00';								// Omvormer starttijd
-	$invEndTime				= '13:30';								// Omvormer eindtijd
-	$runInfinity			= 'yes';								// Waarde 'yes' of 'no' of 'auto'. Bij 'auto' word er 50% soc behouden voor de nacht, Bij yes zal de omvormer starten met opwekken als de zonpanelen niks meer opwekken en worden de begin en eindtijd variables genegeerd
+	$invStartTime		   = '00:00';							 // Omvormer starttijd (bij $runInfinity == 'no')
+	$invEndTime			   = '13:30';							 // Omvormer eindtijd (bij $runInfinity == 'no')
+	$runInfinity		   = 'yes';								 // Waarde 'yes' of 'no' bij 'yes' zal de omvormer afhankelijk van de instellingen (zomer/wintertijd) altijd blijven opwekken
 
-	$latitude              = '00.00000';						    // Latitude is de afstand – noord of zuid – tot de evenaar
-	$longitude             = '-0.00000';						    // Longitude is de afstand in graden oost of west tot de Meridiaan in Greenwich
-	$zenitLat              = '89.5';							    // Het hoogste punt van de hemel gezien vanuit het punt waar de waarnemer staat
-	$zenitLong             = '91.7';							    // Het hoogste punt van de hemel gezien vanuit het punt waar de waarnemer staat
-	$timezone              = 'Europe/Amsterdam';			        // Mijn php.ini slikt de timezone niet dus dan maar handmatig instelling
+	$latitude              = '00.00000';						 // Latitude is de afstand in graden 'Noord' of 'Zuid' tot de evenaar
+	$longitude             = '-0.00000';						 // Longitude is de afstand in graden 'Oost' of 'West' tot de Meridiaan in Greenwich
+	$zenitLat              = '89.5';							 // Het hoogste punt van de hemel gezien vanuit het punt waar de waarnemer staat
+	$zenitLong             = '91.7';							 // Het hoogste punt van de hemel gezien vanuit het punt waar de waarnemer staat
+	$timezone              = 'Europe/Amsterdam';			     // Mijn php.ini slikt de timezone niet dus dan maar handmatig instelling
 				
 // Omvormer variables
 	$ecoflowMaxOutput	   = 600;								 // Maximale teruglevering (Watts) wat de omvormer kan/mag leveren. 
-	$ecoflowOutputOffSet   = 10;								 // Trek deze value (watts) af van de nieuwe baseload, Deze value wordt alsnog van het net wordt getrokken om teruglevering te voorkomen
+	$ecoflowOutputOffSet   = 15;								     // Trek deze value (watts) af van de nieuwe baseload, Deze value wordt alsnog van het net wordt getrokken om teruglevering te voorkomen
 	$maxInvTemp            = 65;								 // Maximale interne temperatuur, daarboven stopt de omvormer met terugleveren 
 			
 // Homewizard variables
-	$hwP1IP					= '0.0.0.0';						    // IP Homewizard P1 Meter
-	$hwKwhIP				= '0.0.0.0';						    // IP Homewizard Solar kwh Meter
-	$hwEcoFlowIP		    = '0.0.0.0';						    // IP Homewizard EcoFlow socket
-	$hwChargerOneIP 		= '0.0.0.0';     			            // IP Homewizard Charger ONE 300w socket
-	$hwChargerTwoIP 		= '0.0.0.0';     			            // IP Homewizard Charger TWO 600w socket
-		
+	$hwP1IP				   = '0.0.0.0';                          // IP Homewizard P1 Meter
+	$hwKwhIP			   = '0.0.0.0';                          // IP Homewizard Solar kwh Meter
+	$hwEcoFlowIP		   = '0.0.0.0';                          // IP Homewizard EcoFlow socket
+	$hwChargerOneIP 	   = '0.0.0.0';                          // IP Homewizard Charger ONE 300w socket
+	$hwChargerTwoIP 	   = '0.0.0.0';                          // IP Homewizard Charger TWO 600w socket
+	$hwChargerThreeIP 	   = '0.0.0.0';                          // IP Homewizard Charger THREE 300w socket
+	
 // Ecoflow Powerstream API variables
-	$ecoflowPath			= '/path/to/files/';	                // Path waar je scripts zich bevinden
-	$ecoflowAccessKey		= 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx';	// Powerstream API access key
-	$ecoflowSecretKey		= 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx';	// Powerstream API secret key
-	$ecoflowSerialNumber	= ['HWXXXXXXXXXXXXXX',];				// Powerstream serie nummer
+	$ecoflowPath		   = '/path/to/files/';                  // Path waar je scripts zich bevinden
+	$ecoflowAccessKey	   = 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'; // Powerstream API access key
+	$ecoflowSecretKey	   = 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'; // Powerstream API secret key
+	$ecoflowSerialNumber   = ['HWXXXXXXXXXXXXXX',];				 // Powerstream serie nummer
 
 //															     //
 // **************************************************************//
@@ -48,7 +49,14 @@
 	if ($debug == 'yes'){
 	echo ' '.PHP_EOL;
 	echo ' --------------------------------------'.PHP_EOL;
-	echo ' --      EcoFlow Micro-Inverter      --'.PHP_EOL;
+	echo '  _____          _____ _               '.PHP_EOL;
+	echo ' | ____|___ ___ |  ___| | _____      __'.PHP_EOL;
+	echo ' |  _| / __/ _ \| |_  | |/ _ \ \ /\ / /'.PHP_EOL;
+	echo ' | |__| (_| (_) |  _| | | (_) \ V  V / '.PHP_EOL;
+	echo ' |_____\___\___/|_|   |_|\___/ \_/\_/  '.PHP_EOL;
+	echo ' '.PHP_EOL;
+	echo ' --------------------------------------'.PHP_EOL;
+	echo ' --       Automatische baseload      --'.PHP_EOL;
 	echo ' --------------------------------------'.PHP_EOL;
 	echo ' '.PHP_EOL;
 	}
@@ -121,9 +129,9 @@
 	$invTemp              = ($inv['data']['20_1.llcTemp']) / 10;
 	
 // Battery Empty?	
-	if ($pvAvInputVoltage <= 22.7) {
+	if ($pvAvInputVoltage <= 22.5) {
 	$batterijEmpty = 1;
-	} elseif ($pvAvInputVoltage >= 0 && $pvAvInputVoltage <= 23.35 && $pvAvInputWatts == 0) {
+	} elseif ($pvAvInputVoltage > 22.5 && $pvAvInputVoltage <= 23.6 && $pvAvInputWatts == 0) {
 	$batterijEmpty = 1;
 	} else {
 	$batterijEmpty = 0;
@@ -211,14 +219,15 @@
 	} elseif ($runInfinity == 'yes' && date('H:i') >= ( '00:00' ) && date('H:i') <= ( ''.$sunrise.'' ) && $batteryState != 'leeg') {
 		$schedule = 1;	
 
-	} elseif ($runInfinity == 'yes' && date('H:i') > ( ''.$sunrise.'' ) && date('H:i') <= ( ''.$sunset.'' ) && $batteryState == 'geladen') {
+	} elseif ($runInfinity == 'yes' && date('H:i') > ( ''.$sunrise.'' ) && date('H:i') <= ( ''.$sunset.'' ) && $batteryState != 'leeg') {
 		$schedule = 1;
-	
+		
 	} elseif ($runInfinity == 'yes' && date('H:i') > ( ''.$sunset.'' ) && date('H:i') <= ( '23:59' ) && $isDST == '1' && $batteryState != 'leeg') {
 		$schedule = 1;
 
-	} elseif ($runInfinity == 'yes' && date('H:i') > ( ''.$sunset.'' ) && date('H:i') <= ( '23:59' ) && $isDST == '0' && $batteryState == 'geladen') {
+	} elseif (($runInfinity == 'yes' && date('H:i') > ( ''.$sunset.'' ) && date('H:i') <= ( '23:59' ) && $isDST == '0') && ($batteryState == 'half vol' || $batteryState == 'vol')) {
 		$schedule = 1;
+		$ecoflowMaxOutput = ($ecoflowMaxOutput) / 1.8;
 		
 	} else {
 		$schedule = 0;	
@@ -287,7 +296,7 @@
 	}
 
 // Set baseload to null when battery has not been fully charged during wintertime	
-	if ($isDST == '0' && $batteryState == 'leeg'){
+	if ($batteryState == 'leeg'){
 		$newBaseload = 0;
 		$newInvBaseload = 0;
 	}	
@@ -311,13 +320,7 @@
 // Print Battery Status
 		echo ' -/- Batterij                 -\-'.PHP_EOL;
 		echo '  -- Batterij Voltage          : '.$pvAvInputVoltage.'v'.PHP_EOL;
-		if ($batterijEmpty == 1) {
-		echo '  -- Batterij leeg!'.PHP_EOL;
-		}
 		echo '  -- Batterij State            : '.$batteryState.''.PHP_EOL;
-		if ($batteryState != 'geladen' && $isDST == '0'){
-		echo '  -- Geen ontlading vandaag...'.PHP_EOL;
-		}
 		echo ' '.PHP_EOL;
 		
 // Print Inverter Status
