@@ -112,6 +112,19 @@
 		fclose($file);
 		//chmod($file, 0777);
 	}
+	
+	function writeBattSOC($state)
+	{
+		global $ecoflowPath;
+		$filePath = ''.$ecoflowPath.'batterySOC.txt';
+		$file = fopen($filePath, "w");
+		if ($file === false) {
+			die("Unable to open file!");
+		}
+		fwrite($file, $state);
+		fclose($file);
+		//chmod($file, 0777);
+	}
 
 // Function GET HomeWizard data
 	function getHwData($ip) {
@@ -261,7 +274,7 @@
 	function writeBattOutputStart($state)
 	{
 		global $ecoflowPath;
-		$filePath = ''.$ecoflowPath.'batteryOutput.txt';
+		$filePath = ''.$ecoflowPath.'batteryOutput_Start.txt';
 		$file = fopen($filePath, "w");
 		if ($file === false) {
 			die("Unable to open file!");
@@ -275,7 +288,7 @@
 	function writeBattOutputEnd($state)
 	{
 		global $ecoflowPath;
-		$filePath = ''.$ecoflowPath.'batteryOutputDiff.txt';
+		$filePath = ''.$ecoflowPath.'batteryOutput_End.txt';
 		$file = fopen($filePath, "w");
 		if ($file === false) {
 			die("Unable to open file!");
@@ -439,42 +452,43 @@
 		echo ' -/- Batterij                 -\-'.PHP_EOL;
 		echo '  -- Batterij Voltage          : '.$pvAvInputVoltage.' Volt'.PHP_EOL;
 		if ($batteryAvail <= 0.00) {
-		echo '  -- Batterij SOC              : 0 %'.PHP_EOL;	
+		echo '  -- Batterij SOC              : 0%'.PHP_EOL;	
 		$batteryPercentage = (0);
 		} elseif ($batteryAvail > 0.00 && $batteryAvail <= 0.30) {
-		echo '  -- Batterij SOC              : 5 %'.PHP_EOL;
+		echo '  -- Batterij SOC              : 5%'.PHP_EOL;
 		$batteryPercentage = (5);		
 		} elseif ($batteryAvail > 0.30 && $batteryAvail <= 0.50) {
-		echo '  -- Batterij SOC              : 10 %'.PHP_EOL;	
+		echo '  -- Batterij SOC              : 10%'.PHP_EOL;	
 		$batteryPercentage = (10);
 		} elseif ($batteryAvail > 0.50 && $batteryAvail <= 1.00) {
-		echo '  -- Batterij SOC              : 15 %'.PHP_EOL;	
+		echo '  -- Batterij SOC              : 15%'.PHP_EOL;	
 		$batteryPercentage = (15);
 		} elseif ($batteryAvail > 1.00 && $batteryAvail <= 2.00) {
-		echo '  -- Batterij SOC              : 25 %'.PHP_EOL;	
+		echo '  -- Batterij SOC              : 25%'.PHP_EOL;	
 		$batteryPercentage = (25);
 		} elseif ($batteryAvail > 2.00 && $batteryAvail <= 3.00) {
-		echo '  -- Batterij SOC              : 50 %'.PHP_EOL;
+		echo '  -- Batterij SOC              : 50%'.PHP_EOL;
 		$batteryPercentage = (50);
 		} elseif ($batteryAvail > 3.00 && $batteryAvail <= 4.00) {
-		echo '  -- Batterij SOC              : 65 %'.PHP_EOL;	
+		echo '  -- Batterij SOC              : 65%'.PHP_EOL;	
 		$batteryPercentage = (65);
 		} elseif ($batteryAvail > 4.00 && $batteryAvail < 5.00) {
-		echo '  -- Batterij SOC              : 75 %'.PHP_EOL;	
+		echo '  -- Batterij SOC              : 75%'.PHP_EOL;	
 		$batteryPercentage = (75);
 		} elseif ($batteryAvail >= 5.00) {
-		echo '  -- Batterij SOC              : 100 %'.PHP_EOL;
+		echo '  -- Batterij SOC              : 100%'.PHP_EOL;
 		$batteryPercentage = (100);
 		}
+			
 		echo ' '.PHP_EOL;
 		echo ' -/- Input/Output             -\-'.PHP_EOL;
-		echo '  -- Totaal Geladen            : '.$batteryTotalCharged.' kWh'.PHP_EOL;
-		echo '  -- Totaal Ontladen           : '.$batteryTotalDischarged.' kWh'.PHP_EOL;
-		echo '  -- kWh Beschikbaar (EF '.$chargerEfficiency.'%)  : '.$batteryAvail.' kWh'.PHP_EOL;
+		echo '  -- Totaal Geladen            : '.$batteryTotalCharged.' Wh'.PHP_EOL;
+		echo '  -- Totaal Ontladen           : '.$batteryTotalDischarged.' Wh'.PHP_EOL;
+		echo '  -- Wh Beschikbaar (EF '.$chargerEfficiency.'%)   : '.$batteryAvail.' Wh'.PHP_EOL;
 		echo ' '.PHP_EOL;
 		
 		echo ' -/- EcoFlow Omvormer         -\-'.PHP_EOL;
-		echo '  -- Temperatuur               : '.$invTemp.' C'.PHP_EOL;
+		echo '  -- Temperatuur               : '.$invTemp.'˚C'.PHP_EOL;
 		echo ' '.PHP_EOL;
 		
 		echo ' -/- Energie                  -\-'.PHP_EOL;
@@ -484,6 +498,9 @@
 		echo '  -- Echte verbruik            : '.$realUsage.' Watt'.PHP_EOL;
 		echo '  -- Verbruik excl laders      : '.$P1ChargerUsage.' Watt'.PHP_EOL;
 	}
+
+// Write Battery SOC to Domoticz and File
+	writeBattSOC(''.$batteryPercentage.'');
 	UpdatePercentageDevice($batteryPercentageIDX, ''.$batteryPercentage.'');
 	
 //															     //
