@@ -438,25 +438,31 @@
 		
 		echo ' -/- Batterij                 -\-'.PHP_EOL;
 		echo '  -- Batterij Voltage          : '.$pvAvInputVoltage.' Volt'.PHP_EOL;
-		if ($batteryAvail >= 0.000 && $batteryAvail <= 0.500) {
+		if ($batteryAvail <= 0.000) {
 		echo '  -- Batterij SOC              : 0 %'.PHP_EOL;	
 		$batteryPercentage = (0);
+		} elseif ($batteryAvail > 0.000 && $batteryAvail <= 0.300) {
+		echo '  -- Batterij SOC              : 5 %'.PHP_EOL;
+		$batteryPercentage = (5);		
+		} elseif ($batteryAvail > 0.300 && $batteryAvail <= 0.500) {
+		echo '  -- Batterij SOC              : 10 %'.PHP_EOL;	
+		$batteryPercentage = (10);
 		} elseif ($batteryAvail > 0.500 && $batteryAvail <= 1.000) {
 		echo '  -- Batterij SOC              : 15 %'.PHP_EOL;	
 		$batteryPercentage = (15);
 		} elseif ($batteryAvail > 1.000 && $batteryAvail <= 2.000) {
-		echo '  -- Batterij SOC              : 30 %'.PHP_EOL;	
-		$batteryPercentage = (30);
+		echo '  -- Batterij SOC              : 25 %'.PHP_EOL;	
+		$batteryPercentage = (25);
 		} elseif ($batteryAvail > 2.000 && $batteryAvail <= 3.000) {
-		echo '  -- Batterij SOC              : 45 %'.PHP_EOL;
-		$batteryPercentage = (45);
+		echo '  -- Batterij SOC              : 50 %'.PHP_EOL;
+		$batteryPercentage = (50);
 		} elseif ($batteryAvail > 3.000 && $batteryAvail <= 4.000) {
-		echo '  -- Batterij SOC              : 60 %'.PHP_EOL;	
-		$batteryPercentage = (60);
-		} elseif ($batteryAvail > 4.000 && $batteryAvail <= 5.000) {
+		echo '  -- Batterij SOC              : 65 %'.PHP_EOL;	
+		$batteryPercentage = (65);
+		} elseif ($batteryAvail > 4.000 && $batteryAvail < 5.000) {
 		echo '  -- Batterij SOC              : 75 %'.PHP_EOL;	
 		$batteryPercentage = (75);
-		} elseif ($batteryAvail > 5.000) {
+		} elseif ($batteryAvail >= 5.000) {
 		echo '  -- Batterij SOC              : 100 %'.PHP_EOL;
 		$batteryPercentage = (100);
 		}
@@ -492,7 +498,7 @@
 	echo ' --------------------------------------'.PHP_EOL;
 	echo ' '.PHP_EOL;
 	}
-exit(0);	
+
 // Lader 1 of 2 of 3 UIT	
 	if ($P1ChargerUsage > $chargerOneUsage || $chargerUsage <= $chargerWattsIdle || $pvAvInputWatts != 0 || $hwSolarReturn == 0){
 		if ($debug == 'yes'){echo '  -- Laders 1 of 2 of 3 UIT'.PHP_EOL;}	
