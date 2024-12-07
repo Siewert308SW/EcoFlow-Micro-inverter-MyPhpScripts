@@ -503,9 +503,9 @@
 	if ($P1ChargerUsage > $chargerOneUsage || $chargerUsage <= $chargerWattsIdle || $pvAvInputWatts != 0 || $hwSolarReturn == 0){
 		if ($debug == 'yes'){echo '  -- Laders 1 of 2 of 3 UIT'.PHP_EOL;}	
 
-		//if (($chargerOneStatus == 'On' && $keepChargerOn == 'no') && ($hwSolarReturn >= $chargerTwoUsage || $pvAvInputVoltage > 26.3)){ switchHwSocket('one','Off'); sleep(10);}			
-		//if (($chargerOneStatus == 'On' && $keepChargerOn == 'yes') && ($hwSolarReturn >= $chargerOneUsage || $pvAvInputVoltage > 26.3)){ switchHwSocket('one','Off'); sleep(10);}			
-		if ($chargerOneStatus == 'Off' && $keepChargerOn == 'yes' && $hwSolarReturn == 0 && $pvAvInputWatts == 0 && $pvAvInputVoltage < 26.3){ switchHwSocket('one','On'); sleep(10);}	
+		if (($chargerOneStatus == 'On' && $keepChargerOn == 'no') && ($hwSolarReturn >= $chargerOneUsage || $pvAvInputVoltage > 26.3)){ switchHwSocket('one','Off'); sleep(10);}			
+		if (($chargerOneStatus == 'On' && $keepChargerOn == 'yes') && ($hwSolarReturn >= $chargerTwoUsage || $pvAvInputVoltage > 26.3)){ switchHwSocket('one','Off'); sleep(10);}			
+		if ($chargerOneStatus == 'Off' && $keepChargerOn == 'yes' && $hwSolarReturn < $chargerTwoUsage && $pvAvInputWatts == 0 && $pvAvInputVoltage < 26.3){ switchHwSocket('one','On'); sleep(5);}	
 
 		if ($chargerTwoStatus == 'On' && $hwSolarReturn >= $chargerUsage){ switchHwSocket('two','Off'); sleep(10);}
 		if ($chargerThreeStatus == 'On' && $hwSolarReturn >= $chargerUsage){ switchHwSocket('three','Off');}
