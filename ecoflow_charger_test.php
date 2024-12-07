@@ -350,7 +350,7 @@
 	
 	if (file_exists($batteryInputStartFile)) {
 	$batteryInputStartkWh     = file_get_contents(''.$batteryInputStartFile.'');
-	$batteryInputStartkWh     = round($batteryInputStartkWh, 3);
+	$batteryInputStartkWh     = round($batteryInputStartkWh, 2);
 
 		if ($pvAvInputVoltage >= 0 && $pvAvInputVoltage <= 23.5 && $pvAvInputWatts == 0 && file_exists($batteryInputStartFile)) {
 			unlink($batteryInputStartFile);
@@ -365,14 +365,14 @@
 			writeBattInputStart(''.$hwchargerTotal.'');
 			writeBattInputEnd(''.$hwchargerTotal.'');
 		} else {
-			$batteryInputStartkWh = 0.000;		
+			$batteryInputStartkWh = 0.00;		
 		}
 	}
 	
 // Write Battery Input Diff Total
 	if (file_exists($batteryInputEndFile)) {
 	$batteryInputEndkWh     = file_get_contents(''.$batteryInputEndFile.'');
-	$batteryInputEndkWh     = round($batteryInputEndkWh, 3);
+	$batteryInputEndkWh     = round($batteryInputEndkWh, 2);
 		
 		if ($chargerUsage > $chargerWattsIdle){
 			writeBattInputEnd(''.$hwchargerTotal.'');
@@ -380,14 +380,14 @@
 		
 	} else {
 		
-	$batteryInputEndkWh = 0.000;			
+	$batteryInputEndkWh = 0.00;			
 	
 	}	
 
 // Write Battery Output Total
 	if (file_exists($batteryOutputStartFile)) {
 	$batteryOutputStartkWh     = file_get_contents(''.$batteryOutputStartFile.'');
-	$batteryOutputStartkWh     = round($batteryOutputStartkWh, 3);
+	$batteryOutputStartkWh     = round($batteryOutputStartkWh, 2);
 		
 	} else {
 			//writeBattOutputStart(''.$hwInvTotal.'');
@@ -396,14 +396,14 @@
 			writeBattOutputStart(''.$hwInvTotal.'');
 			writeBattOutputEnd(''.$hwInvTotal.'');
 		} else {
-			$batteryOutputStartkWh = 0.000;		
+			$batteryOutputStartkWh = 0.00;		
 		}
 	}
 	
 // Write Battery Output Diff Total
 	if (file_exists($batteryOutputEndFile)) {
 	$batteryOutputEndkWh     = file_get_contents(''.$batteryOutputEndFile.'');
-	$batteryOutputEndkWh     = round($batteryOutputEndkWh, 3);
+	$batteryOutputEndkWh     = round($batteryOutputEndkWh, 2);
 		
 		if ($hwInvReturn > 0){
 			writeBattOutputEnd(''.$hwchargerTotal.'');		
@@ -411,15 +411,15 @@
 		
 	} else {
 		
-	$batteryOutputEndkWh = 0.000;			
+	$batteryOutputEndkWh = 0.00;			
 	
 	}
 
 // Calculate Battery Input/Output Total	
-	$batteryTotalCharged    = round($batteryInputEndkWh - $batteryInputStartkWh, 3);
-	$batteryTotalDischarged = round($batteryOutputEndkWh - $batteryOutputStartkWh, 3);
+	$batteryTotalCharged    = round($batteryInputEndkWh - $batteryInputStartkWh, 2);
+	$batteryTotalDischarged = round($batteryOutputEndkWh - $batteryOutputStartkWh, 2);
 	$batteryAvail           = abs($batteryTotalCharged - $batteryTotalDischarged);
-	$batteryAvail           = round($batteryAvail / 100 * $chargerEfficiency, 3);
+	$batteryAvail           = round($batteryAvail / 100 * $chargerEfficiency, 2);
 
 //															     //
 // **************************************************************//
@@ -438,31 +438,31 @@
 		
 		echo ' -/- Batterij                 -\-'.PHP_EOL;
 		echo '  -- Batterij Voltage          : '.$pvAvInputVoltage.' Volt'.PHP_EOL;
-		if ($batteryAvail <= 0.000) {
+		if ($batteryAvail <= 0.00) {
 		echo '  -- Batterij SOC              : 0 %'.PHP_EOL;	
 		$batteryPercentage = (0);
-		} elseif ($batteryAvail > 0.000 && $batteryAvail <= 0.300) {
+		} elseif ($batteryAvail > 0.00 && $batteryAvail <= 0.30) {
 		echo '  -- Batterij SOC              : 5 %'.PHP_EOL;
 		$batteryPercentage = (5);		
-		} elseif ($batteryAvail > 0.300 && $batteryAvail <= 0.500) {
+		} elseif ($batteryAvail > 0.30 && $batteryAvail <= 0.50) {
 		echo '  -- Batterij SOC              : 10 %'.PHP_EOL;	
 		$batteryPercentage = (10);
-		} elseif ($batteryAvail > 0.500 && $batteryAvail <= 1.000) {
+		} elseif ($batteryAvail > 0.50 && $batteryAvail <= 1.00) {
 		echo '  -- Batterij SOC              : 15 %'.PHP_EOL;	
 		$batteryPercentage = (15);
-		} elseif ($batteryAvail > 1.000 && $batteryAvail <= 2.000) {
+		} elseif ($batteryAvail > 1.00 && $batteryAvail <= 2.00) {
 		echo '  -- Batterij SOC              : 25 %'.PHP_EOL;	
 		$batteryPercentage = (25);
-		} elseif ($batteryAvail > 2.000 && $batteryAvail <= 3.000) {
+		} elseif ($batteryAvail > 2.00 && $batteryAvail <= 3.00) {
 		echo '  -- Batterij SOC              : 50 %'.PHP_EOL;
 		$batteryPercentage = (50);
-		} elseif ($batteryAvail > 3.000 && $batteryAvail <= 4.000) {
+		} elseif ($batteryAvail > 3.00 && $batteryAvail <= 4.00) {
 		echo '  -- Batterij SOC              : 65 %'.PHP_EOL;	
 		$batteryPercentage = (65);
-		} elseif ($batteryAvail > 4.000 && $batteryAvail < 5.000) {
+		} elseif ($batteryAvail > 4.00 && $batteryAvail < 5.00) {
 		echo '  -- Batterij SOC              : 75 %'.PHP_EOL;	
 		$batteryPercentage = (75);
-		} elseif ($batteryAvail >= 5.000) {
+		} elseif ($batteryAvail >= 5.00) {
 		echo '  -- Batterij SOC              : 100 %'.PHP_EOL;
 		$batteryPercentage = (100);
 		}
@@ -504,11 +504,11 @@
 		if ($debug == 'yes'){echo '  -- Laders 1 of 2 of 3 UIT'.PHP_EOL;}	
 
 		if (($chargerOneStatus == 'On' && $keepChargerOn == 'no') && ($hwSolarReturn >= $chargerOneUsage || $pvAvInputVoltage > 26.3)){ switchHwSocket('one','Off'); sleep(10);}			
-		if (($chargerOneStatus == 'On' && $keepChargerOn == 'yes') && ($hwSolarReturn >= $chargerTwoUsage || $pvAvInputVoltage > 26.3)){ switchHwSocket('one','Off'); sleep(10);}			
-		if ($chargerOneStatus == 'Off' && $keepChargerOn == 'yes' && $hwSolarReturn < $chargerTwoUsage && $pvAvInputWatts == 0 && $pvAvInputVoltage < 26.3){ switchHwSocket('one','On'); sleep(5);}	
+		if (($chargerOneStatus == 'On' && $keepChargerOn == 'yes') && ($hwSolarReturn >= $chargerOneUsage || $pvAvInputVoltage > 26.3)){ switchHwSocket('one','Off'); sleep(10);}			
+		if ($chargerOneStatus == 'Off' && $keepChargerOn == 'yes' && $hwSolarReturn < $chargerOneUsage && $pvAvInputWatts == 0 && $pvAvInputVoltage < 26.3){ switchHwSocket('one','On'); sleep(5);}	
 
-		if ($chargerTwoStatus == 'On' && $hwSolarReturn >= $chargerUsage){ switchHwSocket('two','Off'); sleep(10);}
-		if ($chargerThreeStatus == 'On' && $hwSolarReturn >= $chargerUsage){ switchHwSocket('three','Off');}
+		if ($chargerTwoStatus == 'On'){ switchHwSocket('two','Off'); sleep(10);}
+		if ($chargerThreeStatus == 'On'){ switchHwSocket('three','Off');}
 	}
 
 // Lader 1 AAN - Lader 2 & 3 UIT			
