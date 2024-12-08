@@ -41,8 +41,6 @@
 	$ecoflowSecretKey	   = 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'; // Powerstream API secret key
 	$ecoflowSerialNumber   = ['HWXXXXXXXXXXXXXX',];				 // Powerstream serie nummer
 
-// Battery State File
-	$batteryState = file_get_contents(''.$ecoflowPath.'batteryState.txt');
 //															     //
 // **************************************************************//
 //        EcoFlow LiFePo4 12/12/20a Thuisbatterij opladen        //
@@ -430,8 +428,9 @@
 	$batteryTotalDischarged = round($batteryOutputEndkWh - $batteryOutputStartkWh, 2);
 	$batteryAvail           = abs($batteryTotalCharged - $batteryTotalDischarged);
 	$batteryAvail           = round($batteryAvail / 100 * $chargerEfficiency, 2);
-	$batteryCapacity		= ($batteryVolt * $batteryAh);
-	$batterySOC				= round($batteryAvail / $batteryCapacity * 100, 2);
+	$batteryAh				= ($batteryAh / 1000);
+	$batteryCapacity		= round($batteryVolt * $batteryAh, 2);
+	$batterySOC				= round($batteryAvail / $batteryCapacity * 100, 1);
 	
 //															     //
 // **************************************************************//
