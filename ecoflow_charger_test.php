@@ -99,33 +99,6 @@
 		exit(1);
 		}
 
-// Function write batterState.txt
-	function writeBattState($state)
-	{
-		global $ecoflowPath;
-		$filePath = ''.$ecoflowPath.'batteryState.txt';
-		$file = fopen($filePath, "w");
-		if ($file === false) {
-			die("Unable to open file!");
-		}
-		fwrite($file, $state);
-		fclose($file);
-		//chmod($file, 0777);
-	}
-	
-	function writeBattSOC($state)
-	{
-		global $ecoflowPath;
-		$filePath = ''.$ecoflowPath.'batterySOC.txt';
-		$file = fopen($filePath, "w");
-		if ($file === false) {
-			die("Unable to open file!");
-		}
-		fwrite($file, $state);
-		fclose($file);
-		//chmod($file, 0777);
-	}
-
 // Function GET HomeWizard data
 	function getHwData($ip) {
 		global $debug;
@@ -431,6 +404,9 @@
 	$batteryAh				= ($batteryAh / 1000);
 	$batteryCapacity		= round($batteryVolt * $batteryAh, 2);
 	$batterySOC				= round($batteryAvail / $batteryCapacity * 100, 1);
+
+// Write Battery SOC to Domoticz
+	UpdatePercentageDevice($batteryPercentageIDX, ''.$batterySOC.'');
 	
 //															     //
 // **************************************************************//
@@ -469,10 +445,6 @@
 		echo '  -- Echte verbruik            : '.$realUsage.' Watt'.PHP_EOL;
 		echo '  -- Verbruik excl laders      : '.$P1ChargerUsage.' Watt'.PHP_EOL;
 	}
-
-// Write Battery SOC to Domoticz and File
-	writeBattSOC(''.$batterySOC.'');
-	UpdatePercentageDevice($batteryPercentageIDX, ''.$batterySOC.'');
 	
 //															     //
 // **************************************************************//
