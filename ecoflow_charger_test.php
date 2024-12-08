@@ -393,13 +393,13 @@
 		}
 		
 		if ($pvAvInputVoltage >= 0 && $pvAvInputVoltage <= 23.5 && $pvAvInputWatts == 0) {
-			writeBattInputStart('0.00');
-			writeBattInputEnd('0.00');
+			writeBattInputStart(''.$hwchargerTotal.'');
+			writeBattInputEnd(''.$hwchargerTotal.'');
 		}
 		
 	} else {
-			writeBattInputStart('0.00');
-			writeBattInputEnd('0.00');
+			writeBattInputStart(''.$hwchargerTotal.'');
+			writeBattInputEnd(''.$hwchargerTotal.'');
 	}
 
 // Write Battery Output Total
@@ -414,13 +414,13 @@
 		}
 		
 		if ($pvAvInputVoltage >= 0 && $pvAvInputVoltage <= 23.5 && $pvAvInputWatts == 0) {
-			writeBattOutputStart('0.00');
-			writeBattOutputEnd('0.00');
+			writeBattOutputStart(''.$hwInvTotal.'');
+			writeBattOutputEnd(''.$hwInvTotal.'');
 		}
 		
 	} else {
-			writeBattOutputStart('0.00');
-			writeBattOutputEnd('0.00');
+			writeBattOutputStart(''.$hwInvTotal.'');
+			writeBattOutputEnd(''.$hwInvTotal.'');
 	}
 	
 // Calculate Battery Input/Output Total	
