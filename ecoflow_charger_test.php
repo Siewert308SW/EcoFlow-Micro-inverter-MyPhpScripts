@@ -26,6 +26,8 @@
 	$urls    = ['batteryPercentageIDX' => $baseUrl . $batteryPercentageIDX,];
 	
 // Lader/Batterij variables
+	$batteryVolt		   = 25.6;								 // Voltage van je batterij
+	$batteryAh             = 200;                                // Totale Ah van alle batterijen
 	$chargerOneUsage	   = 350;								 // Verbruik van Lader 1 (Watt)
 	$chargerTwoUsage	   = 600;								 // Verbruik van Lader 2 (Watt)
 	$chargerThreeUsage     = 350;								 // Verbruik van Lader 3 (Watt)
@@ -151,7 +153,7 @@
 		}
 	}
 
-// Function GET HomeWizard Total
+// Function GET HomeWizard Total Input Data
 	function getHwTotalData($ip) {
 		global $debug;
 		$hwData = curl_init();
@@ -171,6 +173,31 @@
 			
 			$hwDataDecode  = json_decode($hwDataResult);
 			$hwDataDecoded = round($hwDataDecode->total_power_import_kwh, 3);
+			return $hwDataDecoded;
+			curl_close($hwData);
+		}
+	}
+	
+// Function GET HomeWizard Total Output Data
+	function getHwTotalOutputData($ip) {
+		global $debug;
+		$hwData = curl_init();
+		curl_setopt($hwData, CURLOPT_URL, "http://".$ip."/api/v1/data");
+		curl_setopt($hwData, CURLOPT_RETURNTRANSFER, true);
+		$hwDataResult = curl_exec($hwData);
+
+		if (curl_errno($hwData)) { 
+			if ($debug == 'yes'){
+			echo ' -- ERROR: Kan geen gegevens op halen van Homewizard: '.$ip.'!'.PHP_EOL;
+			echo ' '.PHP_EOL;
+			echo ' --------------------------------------'.PHP_EOL;
+			}
+			exit(0);	
+
+		} else {
+			
+			$hwDataDecode  = json_decode($hwDataResult);
+			$hwDataDecoded = round($hwDataDecode->total_power_export_kwh, 3);
 			return $hwDataDecoded;
 			curl_close($hwData);
 		}
@@ -253,7 +280,6 @@
 		}
 		fwrite($file, $state);
 		fclose($file);
-		//chmod($file, 0777);
 	}
 
 // Function write batterInput_End.txt
@@ -267,7 +293,6 @@
 		}
 		fwrite($file, $state);
 		fclose($file);
-		//chmod($file, 0777);
 	}
 	
 // Function write batterOutput.txt
@@ -281,7 +306,6 @@
 		}
 		fwrite($file, $state);
 		fclose($file);
-		//chmod($file, 0777);
 	}
 
 // Function write batterOutputDiff.txt
@@ -295,7 +319,6 @@
 		}
 		fwrite($file, $state);
 		fclose($file);
-		//chmod($file, 0777);
 	}
 	
 	function UpdatePercentageDevice($idx,$cmd) {
@@ -316,7 +339,7 @@
 	$chargerTwoStatus     = getHwStatus($hwChargerTwoIP);
 	$chargerThreeStatus   = getHwStatus($hwChargerThreeIP);
 
-	$hwInvTotal           = getHwTotalData($hwEcoFlowIP);
+	$hwInvTotal           = getHwTotalOutputData($hwEcoFlowIP);
 	$hwchargerOneTotal    = getHwTotalData($hwChargerOneIP);
 	$hwchargerTwoTotal    = getHwTotalData($hwChargerTwoIP);
 	$hwchargerThreeTotal  = getHwTotalData($hwChargerThreeIP);
@@ -360,80 +383,56 @@
 	$batteryInputEndFile    = ''.$ecoflowPath.'batteryInput_End.txt';
 	$batteryOutputStartFile = ''.$ecoflowPath.'batteryOutput_Start.txt';
 	$batteryOutputEndFile   = ''.$ecoflowPath.'batteryOutput_End.txt';
-	
-	if (file_exists($batteryInputStartFile)) {
-	$batteryInputStartkWh     = file_get_contents(''.$batteryInputStartFile.'');
-	$batteryInputStartkWh     = round($batteryInputStartkWh, 2);
 
-		if ($pvAvInputVoltage >= 0 && $pvAvInputVoltage <= 23.5 && $pvAvInputWatts == 0 && file_exists($batteryInputStartFile)) {
-			unlink($batteryInputStartFile);
-			unlink($batteryInputEndFile);
-			unlink($batteryOutputStartFile);
-			unlink($batteryOutputEndFile);
-		}
-		
-	} else {
-		
-		if ($chargerUsage > $chargerWattsIdle){
-			writeBattInputStart(''.$hwchargerTotal.'');
-			writeBattInputEnd(''.$hwchargerTotal.'');
-		} else {
-			$batteryInputStartkWh = 0.00;		
-		}
-	}
-	
-// Write Battery Input Diff Total
-	if (file_exists($batteryInputEndFile)) {
+	if (file_exists($batteryInputStartFile) && file_exists($batteryInputEndFile)) {
+	$batteryInputStartkWh   = file_get_contents(''.$batteryInputStartFile.'');
+	$batteryInputStartkWh   = round($batteryInputStartkWh, 2);
 	$batteryInputEndkWh     = file_get_contents(''.$batteryInputEndFile.'');
 	$batteryInputEndkWh     = round($batteryInputEndkWh, 2);
+	
+		if ($chargerUsage >= $chargerWattsIdle){
+			writeBattInputEnd(''.$hwchargerTotal.'');	
+		}
 		
-		if ($chargerUsage > $chargerWattsIdle){
-			writeBattInputEnd(''.$hwchargerTotal.'');
+		if ($pvAvInputVoltage >= 0 && $pvAvInputVoltage <= 23.5 && $pvAvInputWatts == 0) {
+			writeBattInputStart('0.00');
+			writeBattInputEnd('0.00');
 		}
 		
 	} else {
-		
-	$batteryInputEndkWh = 0.00;			
-	
-	}	
+			writeBattInputStart('0.00');
+			writeBattInputEnd('0.00');
+	}
 
 // Write Battery Output Total
-	if (file_exists($batteryOutputStartFile)) {
-	$batteryOutputStartkWh     = file_get_contents(''.$batteryOutputStartFile.'');
-	$batteryOutputStartkWh     = round($batteryOutputStartkWh, 2);
-		
-	} else {
-			//writeBattOutputStart(''.$hwInvTotal.'');
-			//writeBattOutputEnd(''.$hwInvTotal.'');		
-		if ($hwInvReturn > 0){
-			writeBattOutputStart(''.$hwInvTotal.'');
-			writeBattOutputEnd(''.$hwInvTotal.'');
-		} else {
-			$batteryOutputStartkWh = 0.00;		
-		}
-	}
+	if (file_exists($batteryOutputStartFile) && file_exists($batteryOutputEndFile)) {
+	$batteryOutputStartkWh  = file_get_contents(''.$batteryOutputStartFile.'');
+	$batteryOutputStartkWh  = round($batteryOutputStartkWh, 2);
+	$batteryOutputEndkWh    = file_get_contents(''.$batteryOutputEndFile.'');
+	$batteryOutputEndkWh    = round($batteryOutputEndkWh, 2);
 	
-// Write Battery Output Diff Total
-	if (file_exists($batteryOutputEndFile)) {
-	$batteryOutputEndkWh     = file_get_contents(''.$batteryOutputEndFile.'');
-	$batteryOutputEndkWh     = round($batteryOutputEndkWh, 2);
+		if ($hwInvTotal <= -1){
+			writeBattOutputEnd(''.$hwInvTotal.'');	
+		}
 		
-		if ($hwInvReturn > 0){
-			writeBattOutputEnd(''.$hwchargerTotal.'');		
+		if ($pvAvInputVoltage >= 0 && $pvAvInputVoltage <= 23.5 && $pvAvInputWatts == 0) {
+			writeBattOutputStart('0.00');
+			writeBattOutputEnd('0.00');
 		}
 		
 	} else {
-		
-	$batteryOutputEndkWh = 0.00;			
-	
+			writeBattOutputStart('0.00');
+			writeBattOutputEnd('0.00');
 	}
-
+	
 // Calculate Battery Input/Output Total	
 	$batteryTotalCharged    = round($batteryInputEndkWh - $batteryInputStartkWh, 2);
 	$batteryTotalDischarged = round($batteryOutputEndkWh - $batteryOutputStartkWh, 2);
 	$batteryAvail           = abs($batteryTotalCharged - $batteryTotalDischarged);
 	$batteryAvail           = round($batteryAvail / 100 * $chargerEfficiency, 2);
-
+	$batteryCapacity		= ($batteryVolt * $batteryAh);
+	$batterySOC				= round($batteryAvail / $batteryCapacity * 100, 2);
+	
 //															     //
 // **************************************************************//
 //        EcoFlow LiFePo4 12/12/20a Thuisbatterij Laders         //
@@ -449,42 +448,15 @@
 		echo '  -- Laders verbruik           : '.$chargerUsage.' Watt'.PHP_EOL;		
 		echo ' '.PHP_EOL;
 		
-		echo ' -/- Batterij                 -\-'.PHP_EOL;
-		echo '  -- Batterij Voltage          : '.$pvAvInputVoltage.' Volt'.PHP_EOL;
-		if ($batteryAvail <= 0.00) {
-		echo '  -- Batterij SOC              : 0%'.PHP_EOL;	
-		$batteryPercentage = (0);
-		} elseif ($batteryAvail > 0.00 && $batteryAvail <= 0.30) {
-		echo '  -- Batterij SOC              : 5%'.PHP_EOL;
-		$batteryPercentage = (5);		
-		} elseif ($batteryAvail > 0.30 && $batteryAvail <= 0.50) {
-		echo '  -- Batterij SOC              : 10%'.PHP_EOL;	
-		$batteryPercentage = (10);
-		} elseif ($batteryAvail > 0.50 && $batteryAvail <= 1.00) {
-		echo '  -- Batterij SOC              : 15%'.PHP_EOL;	
-		$batteryPercentage = (15);
-		} elseif ($batteryAvail > 1.00 && $batteryAvail <= 2.00) {
-		echo '  -- Batterij SOC              : 25%'.PHP_EOL;	
-		$batteryPercentage = (25);
-		} elseif ($batteryAvail > 2.00 && $batteryAvail <= 3.00) {
-		echo '  -- Batterij SOC              : 50%'.PHP_EOL;
-		$batteryPercentage = (50);
-		} elseif ($batteryAvail > 3.00 && $batteryAvail <= 4.00) {
-		echo '  -- Batterij SOC              : 65%'.PHP_EOL;	
-		$batteryPercentage = (65);
-		} elseif ($batteryAvail > 4.00 && $batteryAvail < 5.00) {
-		echo '  -- Batterij SOC              : 75%'.PHP_EOL;	
-		$batteryPercentage = (75);
-		} elseif ($batteryAvail >= 5.00) {
-		echo '  -- Batterij SOC              : 100%'.PHP_EOL;
-		$batteryPercentage = (100);
-		}
+		echo ' -/- Batterij @ '.$batteryCapacity.' kWh      -\-'.PHP_EOL;
+		echo '  -- Batterij voltage          : '.$pvAvInputVoltage.' Volt'.PHP_EOL;
+		echo '  -- Batterij SOC              : '.$batterySOC.'%'.PHP_EOL;			
 			
 		echo ' '.PHP_EOL;
 		echo ' -/- Input/Output             -\-'.PHP_EOL;
-		echo '  -- Totaal Geladen            : '.$batteryTotalCharged.' Wh'.PHP_EOL;
-		echo '  -- Totaal Ontladen           : '.$batteryTotalDischarged.' Wh'.PHP_EOL;
-		echo '  -- Wh Beschikbaar (EF '.$chargerEfficiency.'%)   : '.$batteryAvail.' Wh'.PHP_EOL;
+		echo '  -- Totaal geladen            : '.$batteryTotalCharged.' kWh'.PHP_EOL;
+		echo '  -- Totaal ontladen           : '.$batteryTotalDischarged.' kWh'.PHP_EOL;
+		echo '  -- kWh Beschikbaar (EF '.$chargerEfficiency.'%)  : '.$batteryAvail.' kWh'.PHP_EOL;
 		echo ' '.PHP_EOL;
 		
 		echo ' -/- EcoFlow Omvormer         -\-'.PHP_EOL;
@@ -500,8 +472,8 @@
 	}
 
 // Write Battery SOC to Domoticz and File
-	writeBattSOC(''.$batteryPercentage.'');
-	UpdatePercentageDevice($batteryPercentageIDX, ''.$batteryPercentage.'');
+	writeBattSOC(''.$batterySOC.'');
+	UpdatePercentageDevice($batteryPercentageIDX, ''.$batterySOC.'');
 	
 //															     //
 // **************************************************************//
