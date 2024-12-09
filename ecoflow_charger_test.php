@@ -20,6 +20,7 @@
 // Domoticz variables
 	$domoticzIP			    = '127.0.0.1:8080'; 	        	 // IP + poort van Domoticz
 	$batteryPercentageIDX   = '64';
+	$batteryChargeTimeIDX   = '66';
 	
 // Lader/Batterij variables
 	$batteryVolt		   = 25.6;								 // Voltage van je batterij
@@ -288,16 +289,25 @@
 		fclose($file);
 	}
 	
-	function UpdatePercentageDevice($idx,$cmd) {
+	function UpdateDomoticzDevice($idx,$cmd) {
 	  global $domoticzIP;
+	  global $batteryPercentageIDX;
+	  global $batteryChargeTimeIDX;
+	  if ($idx == $batteryPercentageIDX){
 	  $reply=json_decode(file_get_contents('http://'.$domoticzIP.'/json.htm?type=command&param=udevice&idx='.$idx.'&nvalue=0&svalue='.$cmd.';0'),true);
+	  }
+	  
+	  if ($idx == $batteryChargeTimeIDX){
+	  $reply=json_decode(file_get_contents('http://'.$domoticzIP.'/json.htm?type=command&param=udevice&idx='.$idx.'&nvalue=0&svalue='.$cmd.''),true);
+	  }
+	  
 	  if($reply['status']=='OK') $reply='OK';else $reply='ERROR';
 	  return $reply;
 	}
 
 // Domoticz URLs
 	$baseUrl = 'http://'.$domoticzIP.'/json.htm?type=command&param=getdevices&rid=';
-	$urls    = ['batteryPercentageIDX' => $baseUrl . $batteryPercentageIDX,];
+	$urls    = ['batteryPercentageIDX' => $baseUrl . $batteryPercentageIDX,'batteryChargeTimeIDX' => $baseUrl . $batteryChargeTimeIDX,];
 	
 // HomeWizard GET Variables
 	$hwP1Usage            = getHwData($hwP1IP);
@@ -349,23 +359,44 @@
 	$chargerThreeUsage    = -abs($chargerThreeUsage);
 	$chargerTotalUsage    = ($chargerOneUsage + $chargerTwoUsage + $chargerThreeUsage);
 	
-// Write Battery Input Total
+// Get Battery Input/Output Total Files
 	$batteryInputStartFile  = ''.$ecoflowPath.'batteryInput_Start.txt';
 	$batteryInputEndFile    = ''.$ecoflowPath.'batteryInput_End.txt';
 	$batteryOutputStartFile = ''.$ecoflowPath.'batteryOutput_Start.txt';
 	$batteryOutputEndFile   = ''.$ecoflowPath.'batteryOutput_End.txt';
 
-	if (file_exists($batteryInputStartFile) && file_exists($batteryInputEndFile)) {
 	$batteryInputStartkWh   = file_get_contents(''.$batteryInputStartFile.'');
 	$batteryInputStartkWh   = round($batteryInputStartkWh, 2);
 	$batteryInputEndkWh     = file_get_contents(''.$batteryInputEndFile.'');
 	$batteryInputEndkWh     = round($batteryInputEndkWh, 2);
 	
+	$batteryOutputStartkWh  = file_get_contents(''.$batteryOutputStartFile.'');
+	$batteryOutputStartkWh  = round($batteryOutputStartkWh, 2);
+	$batteryOutputEndkWh    = file_get_contents(''.$batteryOutputEndFile.'');
+	$batteryOutputEndkWh    = round($batteryOutputEndkWh, 2);
+	
+// Calculate Battery Input/Output Total	
+	$batteryTotalCharged    = round($batteryInputEndkWh - $batteryInputStartkWh, 2);
+	$batteryTotalDischarged = round($batteryOutputEndkWh - $batteryOutputStartkWh, 2);
+	$batteryAvail           = abs($batteryTotalCharged - $batteryTotalDischarged);
+	$batteryAvail           = round($batteryAvail / 100 * $chargerEfficiency, 2);
+	$batteryAh				= ($batteryAh / 1000);
+	$batteryCapacity		= round($batteryVolt * $batteryAh, 2);
+	$batterySOC				= round($batteryAvail / $batteryCapacity * 100, 1);
+	if ($chargerOneStatus == 'On' || $chargerTwoStatus == 'On' || $chargerThreeStatus == 'On'){
+	$chargeTimeRemaining    = round($batteryCapacity / 80 * 1000 / $chargerUsage * 100, 1);
+	} elseif ($chargerOneStatus == 'Off' && $chargerTwoStatus == 'Off' && $chargerThreeStatus == 'Off'){
+	$chargeTimeRemaining    = 0;	
+	}
+
+// Write Battery Input/Output Total
+	if (file_exists($batteryInputStartFile) && file_exists($batteryInputEndFile)) {
+	
 		if ($chargerUsage >= $chargerWattsIdle){
 			writeBattInputEnd(''.$hwchargerTotal.'');	
 		}
 		
-		if ($batteryMinimum < 10 && $pvAvInputWatts == 0) {
+		if ($batterySOC < $batteryMinimum && $chargerUsage == 0 && $pvAvInputWatts == 0 && $batteryInputStartkWh != $batteryInputEndkWh) {
 			writeBattInputStart(''.$hwchargerTotal.'');
 			writeBattInputEnd(''.$hwchargerTotal.'');
 		}
@@ -377,16 +408,12 @@
 
 // Write Battery Output Total
 	if (file_exists($batteryOutputStartFile) && file_exists($batteryOutputEndFile)) {
-	$batteryOutputStartkWh  = file_get_contents(''.$batteryOutputStartFile.'');
-	$batteryOutputStartkWh  = round($batteryOutputStartkWh, 2);
-	$batteryOutputEndkWh    = file_get_contents(''.$batteryOutputEndFile.'');
-	$batteryOutputEndkWh    = round($batteryOutputEndkWh, 2);
 
 		if ($hwInvReturn < 0){
 			writeBattOutputEnd(''.$hwInvTotal.'');	
 		}
 		
-		if ($batteryMinimum < 10 && $pvAvInputWatts == 0) {
+		if ($batterySOC < $batteryMinimum && $pvAvInputWatts == 0 && $batteryOutputStartkWh != $batteryOutputEndkWh) {
 			writeBattOutputStart(''.$hwInvTotal.'');
 			writeBattOutputEnd(''.$hwInvTotal.'');
 		}
@@ -396,17 +423,9 @@
 			writeBattOutputEnd(''.$hwInvTotal.'');
 	}
 	
-// Calculate Battery Input/Output Total	
-	$batteryTotalCharged    = round($batteryInputEndkWh - $batteryInputStartkWh, 2);
-	$batteryTotalDischarged = round($batteryOutputEndkWh - $batteryOutputStartkWh, 2);
-	$batteryAvail           = abs($batteryTotalCharged - $batteryTotalDischarged);
-	$batteryAvail           = round($batteryAvail / 100 * $chargerEfficiency, 2);
-	$batteryAh				= ($batteryAh / 1000);
-	$batteryCapacity		= round($batteryVolt * $batteryAh, 2);
-	$batterySOC				= round($batteryAvail / $batteryCapacity * 100, 1);
-
 // Write Battery SOC to Domoticz
-	UpdatePercentageDevice($batteryPercentageIDX, ''.$batterySOC.'');
+	UpdateDomoticzDevice($batteryPercentageIDX, ''.$batterySOC.'');
+	UpdateDomoticzDevice($batteryChargeTimeIDX, ''.$chargeTimeRemaining.'');
 	
 //															     //
 // **************************************************************//
@@ -420,7 +439,10 @@
 		echo '  -- Lader 1                   : '.$chargerOneStatus.''.PHP_EOL;	
 		echo '  -- Lader 2                   : '.$chargerTwoStatus.''.PHP_EOL;
 		echo '  -- Lader 3                   : '.$chargerThreeStatus.''.PHP_EOL;
-		echo '  -- Laders verbruik           : '.$chargerUsage.' Watt'.PHP_EOL;		
+		echo '  -- Laders verbruik           : '.$chargerUsage.' Watt'.PHP_EOL;
+		if ($chargerOneStatus == 'On' || $chargerTwoStatus == 'On' || $chargerThreeStatus == 'On'){
+		echo '  -- Laad tijd tot 100%        : '.$chargeTimeRemaining.' uur'.PHP_EOL;
+		}
 		echo ' '.PHP_EOL;
 		
 		echo ' -/- Batterij @ '.$batteryCapacity.' kWh      -\-'.PHP_EOL;
@@ -463,16 +485,16 @@
 	if ($P1ChargerUsage > $chargerOneUsage || $chargerUsage <= $chargerWattsIdle || $pvAvInputWatts != 0 || $hwSolarReturn == 0){
 		if ($debug == 'yes'){echo '  -- Laders 1 of 2 of 3 UIT'.PHP_EOL;}	
 
-		if (($chargerOneStatus == 'On' && $keepChargerOn == 'no') && ($hwSolarReturn >= $chargerOneUsage || $pvAvInputVoltage > 26.3)){ switchHwSocket('one','Off'); sleep(10);}			
-		if (($chargerOneStatus == 'On' && $keepChargerOn == 'yes') && ($hwSolarReturn >= $chargerOneUsage || $pvAvInputVoltage > 26.3)){ switchHwSocket('one','Off'); sleep(10);}			
-		if ($chargerOneStatus == 'Off' && $keepChargerOn == 'yes' && $hwSolarReturn < $chargerOneUsage && $pvAvInputWatts == 0 && $pvAvInputVoltage < 26.3){ switchHwSocket('one','On'); sleep(5);}	
+		if (($chargerOneStatus == 'On' && $keepChargerOn == 'no') && ($hwSolarReturn >= $chargerOneUsage || $batterySOC >= 100)){ switchHwSocket('one','Off'); sleep(10);}			
+		if (($chargerOneStatus == 'On' && $keepChargerOn == 'yes') && ($hwSolarReturn >= $chargerOneUsage || $batterySOC >= 100)){ switchHwSocket('one','Off'); sleep(10);}			
+		if ($chargerOneStatus == 'Off' && $keepChargerOn == 'yes' && $hwSolarReturn < $chargerOneUsage && $pvAvInputWatts == 0 && $batterySOC < 100){ switchHwSocket('one','On'); sleep(5);}	
 
 		if ($chargerTwoStatus == 'On'){ switchHwSocket('two','Off'); sleep(10);}
 		if ($chargerThreeStatus == 'On'){ switchHwSocket('three','Off');}
 	}
 
 // Lader 1 AAN - Lader 2 & 3 UIT			
-	if ($P1ChargerUsage > $chargerTwoUsage && $P1ChargerUsage <= $chargerOneUsage && $pvAvInputVoltage < 26.3 && $pvAvInputWatts == 0 && $hwSolarReturn != 0){
+	if ($P1ChargerUsage > $chargerTwoUsage && $P1ChargerUsage <= $chargerOneUsage && $batterySOC < 100 && $pvAvInputWatts == 0 && $hwSolarReturn != 0){
 		if ($debug == 'yes'){echo '  -- Lader 1 AAN - Lader 2 & 3 UIT'.PHP_EOL;}
 		if ($chargerOneStatus == 'Off'){ switchHwSocket('one','On'); sleep(10);}
 		if ($chargerTwoStatus == 'On'){ switchHwSocket('two','Off'); sleep(10);}
@@ -480,7 +502,7 @@
 	}
 
 // Lader 2 AAN - Lader 1 & 3 UIT
-	if ($P1ChargerUsage > $chargerOneTwoUsage && $P1ChargerUsage <= $chargerTwoUsage && $pvAvInputVoltage < 26.3 && $pvAvInputWatts == 0 && $hwSolarReturn != 0){
+	if ($P1ChargerUsage > $chargerOneTwoUsage && $P1ChargerUsage <= $chargerTwoUsage && $batterySOC < 100 && $pvAvInputWatts == 0 && $hwSolarReturn != 0){
 		if ($debug == 'yes'){echo '  -- Lader 2 AAN - Lader 1 & 3 UIT'.PHP_EOL;}
 		if ($chargerTwoStatus == 'Off'){ switchHwSocket('two','On'); sleep(10);}
 		if ($chargerOneStatus == 'On'){ switchHwSocket('one','Off'); sleep(10);}
@@ -488,7 +510,7 @@
 	}
 
 // Lader 1 & 2 AAN - Lader 3 UIT
-	if ($P1ChargerUsage > $chargerTotalUsage && $P1ChargerUsage <= $chargerOneTwoUsage && $pvAvInputVoltage < 26.3 && $pvAvInputWatts == 0 && $hwSolarReturn != 0){
+	if ($P1ChargerUsage > $chargerTotalUsage && $P1ChargerUsage <= $chargerOneTwoUsage && $batterySOC < 100 && $pvAvInputWatts == 0 && $hwSolarReturn != 0){
 		if ($debug == 'yes'){echo '  -- Lader 1 & 2 AAN - Lader 3 UIT'.PHP_EOL;}
 		if ($chargerOneStatus == 'Off'){ switchHwSocket('one','On'); sleep(10);}
 		if ($chargerTwoStatus == 'Off'){ switchHwSocket('two','On'); sleep(10);}
@@ -496,7 +518,7 @@
 	}
 
 // Lader 1, 2, & 3 AAN
-	if ($P1ChargerUsage <= $chargerTotalUsage && $pvAvInputVoltage < 26.3 && $pvAvInputWatts == 0 && $hwSolarReturn != 0){
+	if ($P1ChargerUsage <= $chargerTotalUsage && $batterySOC < 100 && $pvAvInputWatts == 0 && $hwSolarReturn != 0){
 		if ($debug == 'yes'){echo '  -- Lader 1, 2, & 3 AAN'.PHP_EOL;}
 		if ($chargerOneStatus == 'Off'){ switchHwSocket('one','On'); sleep(10);}
 		if ($chargerTwoStatus == 'Off'){ switchHwSocket('two','On'); sleep(10);}
