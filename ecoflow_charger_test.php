@@ -20,10 +20,6 @@
 // Domoticz variables
 	$domoticzIP			    = '127.0.0.1:8080'; 	        	 // IP + poort van Domoticz
 	$batteryPercentageIDX   = '64';
-
-// Domoticz URLs
-	$baseUrl = 'http://'.$domoticzIP.'/json.htm?type=command&param=getdevices&rid=';
-	$urls    = ['batteryPercentageIDX' => $baseUrl . $batteryPercentageIDX,];
 	
 // Lader/Batterij variables
 	$batteryVolt		   = 25.6;								 // Voltage van je batterij
@@ -33,6 +29,7 @@
 	$chargerThreeUsage     = 350;								 // Verbruik van Lader 3 (Watt)
 	$chargerWattsIdle	   =  14;								 // Standby Watts van alle laders wanneer batterijen vol zijn
 	$chargerEfficiency     =  80;                                // Laad efficientie, om de daadwerkelijke beschikbare kWh uit te rekenen
+	$batteryMinimum		   =  10;                                // Minimale procenten die in de batterij moeten blijven zitten
 	$keepChargerOn         = 'yes';                              // Waarde ýes' of 'no' Bij 'yes' Gaat en blijft de kleinste lader langer AAN ongeacht wel of geen overschot
 	
 // Ecoflow Powerstream API variables
@@ -70,7 +67,6 @@
 // Get Ecoflow status
 	$ecoflow = new EcoFlowAPI(''.$ecoflowAccessKey.'', ''.$ecoflowSecretKey.'');
 	$ecoflowSerialNumber = file_get_contents(''.$ecoflowPath.'serialnumber.txt');
-		$batterijEmpty = 0;
 	if ($ecoflowSerialNumber === false) {
 		if ($debug == 'yes'){
 		echo '  -- ERROR: Kan serialnumber.txt niet openen!'.PHP_EOL;
@@ -298,6 +294,10 @@
 	  if($reply['status']=='OK') $reply='OK';else $reply='ERROR';
 	  return $reply;
 	}
+
+// Domoticz URLs
+	$baseUrl = 'http://'.$domoticzIP.'/json.htm?type=command&param=getdevices&rid=';
+	$urls    = ['batteryPercentageIDX' => $baseUrl . $batteryPercentageIDX,];
 	
 // HomeWizard GET Variables
 	$hwP1Usage            = getHwData($hwP1IP);
@@ -365,7 +365,7 @@
 			writeBattInputEnd(''.$hwchargerTotal.'');	
 		}
 		
-		if ($pvAvInputVoltage >= 0 && $pvAvInputVoltage <= 23.5 && $pvAvInputWatts == 0) {
+		if ($batteryMinimum < 10 && $pvAvInputWatts == 0) {
 			writeBattInputStart(''.$hwchargerTotal.'');
 			writeBattInputEnd(''.$hwchargerTotal.'');
 		}
@@ -381,12 +381,12 @@
 	$batteryOutputStartkWh  = round($batteryOutputStartkWh, 2);
 	$batteryOutputEndkWh    = file_get_contents(''.$batteryOutputEndFile.'');
 	$batteryOutputEndkWh    = round($batteryOutputEndkWh, 2);
-	
-		if ($hwInvTotal <= -1){
+
+		if ($hwInvReturn < 0){
 			writeBattOutputEnd(''.$hwInvTotal.'');	
 		}
 		
-		if ($pvAvInputVoltage >= 0 && $pvAvInputVoltage <= 23.5 && $pvAvInputWatts == 0) {
+		if ($batteryMinimum < 10 && $pvAvInputWatts == 0) {
 			writeBattOutputStart(''.$hwInvTotal.'');
 			writeBattOutputEnd(''.$hwInvTotal.'');
 		}
