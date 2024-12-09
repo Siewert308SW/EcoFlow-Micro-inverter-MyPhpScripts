@@ -14,8 +14,8 @@
 	$invEndTime			   = '13:30';							 // Omvormer eindtijd (bij $runInfinity == 'no')
 	$runInfinity		   = 'yes';								 // Waarde 'yes' of 'no' bij 'yes' zal de omvormer afhankelijk van de instellingen (zomer/wintertijd) altijd blijven opwekken
 
-	$latitude              = '53.30261';						 // Latitude is de afstand in graden 'Noord' of 'Zuid' tot de evenaar
-	$longitude             = '-6.60988';						 // Longitude is de afstand in graden 'Oost' of 'West' tot de Meridiaan in Greenwich
+	$latitude              = '00.00000';						 // Latitude is de afstand in graden 'Noord' of 'Zuid' tot de evenaar
+	$longitude             = '-0.00000';						 // Longitude is de afstand in graden 'Oost' of 'West' tot de Meridiaan in Greenwich
 	$zenitLat              = '89.5';							 // Het hoogste punt van de hemel gezien vanuit het punt waar de waarnemer staat
 	$zenitLong             = '91.7';							 // Het hoogste punt van de hemel gezien vanuit het punt waar de waarnemer staat
 	$timezone              = 'Europe/Amsterdam';			     // Mijn php.ini slikt de timezone niet dus dan maar handmatig instelling
@@ -32,18 +32,18 @@
 	$batteryMinimum		   =  10;                                // Minimale procenten die in de batterij moeten blijven zitten
 				
 // Homewizard variables
-	$hwP1IP				   = '192.168.178.77';					 // IP Homewizard P1 Meter
-	$hwKwhIP			   = '192.168.178.83';					 // IP Homewizard Solar kwh Meter
-	$hwEcoFlowIP		   = '192.168.178.88';					 // IP Homewizard EcoFlow socket
-	$hwChargerOneIP 	   = '192.168.178.90';     			     // IP Homewizard Charger ONE 300w socket
-	$hwChargerTwoIP 	   = '192.168.178.89';     			     // IP Homewizard Charger TWO 600w socket
-	$hwChargerThreeIP 	   = '192.168.178.91';     			     // IP Homewizard Charger THREE 300w socket
+	$hwP1IP				   = '0.0.0.0';					         // IP Homewizard P1 Meter
+	$hwKwhIP			   = '0.0.0.0';					         // IP Homewizard Solar kwh Meter
+	$hwEcoFlowIP		   = '0.0.0.0';					         // IP Homewizard EcoFlow socket
+	$hwChargerOneIP 	   = '0.0.0.0';					         // IP Homewizard Charger ONE 300w socket
+	$hwChargerTwoIP 	   = '0.0.0.0';					         // IP Homewizard Charger TWO 600w socket
+	$hwChargerThreeIP 	   = '0.0.0.0';					         // IP Homewizard Charger THREE 300w socket
 	
 // Ecoflow Powerstream API variables
 	$ecoflowPath		   = '/home/siewert/pibattery/';	     // Path waar je scripts zich bevinden
-	$ecoflowAccessKey	   = '7jTgoTSjLAQxnqYFC9Q6jlfCfEeZ03bp'; // Powerstream API access key
-	$ecoflowSecretKey	   = '0oc4tLH2JZUawCh5IPU5uL4kTnkbxW8d'; // Powerstream API secret key
-	$ecoflowSerialNumber   = ['HW51ZEH4SF5R5124',];				 // Powerstream serie nummer
+	$ecoflowAccessKey	   = 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'; // Powerstream API access key
+	$ecoflowSecretKey	   = 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'; // Powerstream API secret key
+	$ecoflowSerialNumber   = ['HWXXXXXXXXXXXX',];				 // Powerstream serie nummer
 
 //															     //
 // **************************************************************//
@@ -207,8 +207,8 @@
 	
 	$batteryTotalCharged    = round($batteryInputEndkWh - $batteryInputStartkWh, 2);
 	$batteryTotalDischarged = round($batteryOutputEndkWh - $batteryOutputStartkWh, 2);
-	$batteryAvail           = abs($batteryTotalCharged - $batteryTotalDischarged);
-	$batteryAvail           = round($batteryAvail / 100 * $chargerEfficiency, 2);
+	$batteryAvailRAW        = abs($batteryTotalCharged - $batteryTotalDischarged);
+	$batteryAvail           = round($batteryAvailRAW / 100 * $chargerEfficiency, 2);
 	$batteryAh				= ($batteryAh / 1000);
 	$batteryCapacity		= round($batteryVolt * $batteryAh, 2);
 	$batterySOC				= round($batteryAvail / $batteryCapacity * 100, 1);
@@ -259,7 +259,13 @@
 
 // Calculate remaining charge time
 	if ($ChargerOneStatus == 'On' || $ChargerTwoStatus == 'On' || $ChargerThreeStatus == 'On'){
-	$chargeTimeRemaining    = round($batteryCapacity / 80 * 1000 / $chargerUsage * 100, 1);
+	$chargeTimeRemaining    = round(($batteryCapacity - $batteryAvailRAW) * 1000 / 80 * 100 / $chargerUsage, 1);
+	}
+
+// Calculate remaining discharge time	
+	if ($hwInvReturn < 0){
+	$hwInvReturnABS = abs($hwInvReturn);	
+	$disChargeTimeRemaining = round(($batteryCapacity - $batteryAvailRAW) * 1000 / 80 * 100 / $hwInvReturnABS, 1);	
 	}
 	
 // determine new baseload	
@@ -335,17 +341,19 @@
 		echo ' '.PHP_EOL;
 
 // Print Battery Status
-		echo ' -/- Batterij                 -\-'.PHP_EOL;
+		echo ' -/- Batterij @ '.$batteryCapacity.' kWh      -\-'.PHP_EOL;
 		echo '  -- Batterij voltage          : '.$pvAvInputVoltage.' Volt'.PHP_EOL;
 		echo '  -- Batterij SOC              : '.$batterySOC.'%'.PHP_EOL;
-		echo ' '.PHP_EOL;
 
 // Print Input/Output Total
 		echo ' '.PHP_EOL;
 		echo ' -/- Input/Output             -\-'.PHP_EOL;
 		echo '  -- Totaal geladen            : '.$batteryTotalCharged.' kWh'.PHP_EOL;
 		echo '  -- Totaal ontladen           : '.$batteryTotalDischarged.' kWh'.PHP_EOL;
-		echo '  -- kWh Beschikbaar (EF '.$chargerEfficiency.'%)  : '.$batteryAvail.' kWh'.PHP_EOL;
+		echo '  -- Opgelagen energie         : '.$batteryAvail.' kWh'.PHP_EOL;
+		if ($hwInvReturn < 0){	
+		echo '  -- Ontlaad tijd tot 0%       : '.$disChargeTimeRemaining.' uur @ '.$hwInvReturn.' Watt'.PHP_EOL;	
+		}
 		echo ' '.PHP_EOL;
 		
 // Print Inverter Status
