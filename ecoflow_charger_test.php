@@ -21,6 +21,8 @@
 	$domoticzIP			    = '127.0.0.1:8080'; 	        	 // IP + poort van Domoticz
 	$batteryPercentageIDX   = '64';
 	$batteryChargeTimeIDX   = '66';
+	$batteryDischargeTimeIDX= '67';
+	$batteryAvailIDX        = '68';
 	
 // Lader/Batterij variables
 	$batteryVolt		   = 25.6;								 // Voltage van je batterij
@@ -293,11 +295,14 @@
 	  global $domoticzIP;
 	  global $batteryPercentageIDX;
 	  global $batteryChargeTimeIDX;
+	  global $batteryDischargeTimeIDX;
+	  global $batteryAvailIDX;
+	  
 	  if ($idx == $batteryPercentageIDX){
 	  $reply=json_decode(file_get_contents('http://'.$domoticzIP.'/json.htm?type=command&param=udevice&idx='.$idx.'&nvalue=0&svalue='.$cmd.';0'),true);
 	  }
 	  
-	  if ($idx == $batteryChargeTimeIDX){
+	  if ($idx == $batteryChargeTimeIDX || $idx == $batteryDischargeTimeIDX || $idx == $batteryAvailIDX){
 	  $reply=json_decode(file_get_contents('http://'.$domoticzIP.'/json.htm?type=command&param=udevice&idx='.$idx.'&nvalue=0&svalue='.$cmd.''),true);
 	  }
 	  
@@ -307,7 +312,7 @@
 
 // Domoticz URLs
 	$baseUrl = 'http://'.$domoticzIP.'/json.htm?type=command&param=getdevices&rid=';
-	$urls    = ['batteryPercentageIDX' => $baseUrl . $batteryPercentageIDX,'batteryChargeTimeIDX' => $baseUrl . $batteryChargeTimeIDX,];
+	$urls    = ['batteryPercentageIDX' => $baseUrl . $batteryPercentageIDX,'batteryChargeTimeIDX' => $baseUrl . $batteryChargeTimeIDX,'batteryDischargeTimeIDX' => $baseUrl . $batteryDischargeTimeIDX,'batteryAvailIDX' => $baseUrl . $batteryAvailIDX,];
 	
 // HomeWizard GET Variables
 	$hwP1Usage            = getHwData($hwP1IP);
@@ -326,23 +331,23 @@
 	$hwchargerThreeTotal  = getHwTotalData($hwChargerThreeIP);
 	$hwchargerTotal       =	($hwchargerOneTotal + $hwchargerTwoTotal + $hwchargerThreeTotal);
 	
-// Get battery Voltage
+// Get EcoFlow Inverter pvInput Voltage
 	$pv1InputVolt 		  = ($inv['data']['20_1.pv1InputVolt']) / 10;
 	$pv2InputVolt 		  = ($inv['data']['20_1.pv2InputVolt']) / 10;
 	$pvAvInputVoltage     = ($pv1InputVolt + $pv2InputVolt) / 2;
 	
-// Get Inverter output Watts
+// Get EcoFlow Inverter pvOutput Watts
 	$pv1InputWatts        = ($inv['data']['20_1.pv1InputWatts']) / 10;
 	$pv2InputWatts        = ($inv['data']['20_1.pv2InputWatts']) / 10;
 	$pvAvInputWatts       = ($pv1InputWatts + $pv2InputWatts);
 	
-// Get Current Baseload
+// Get EcoFlow Inverter Current Baseload
 	$currentBaseload	  = ($inv['data']['20_1.permanentWatts']) / 10;
 
-// Get Inverter Temperature
+// Get EcoFlow Inverter Temperature
 	$invTemp              = ($inv['data']['20_1.llcTemp']) / 10;
 
-// Determine Power Usage
+// Calculate Power Usage
 	$chargerUsage         = ($hwchargerOneUsage + $hwchargerTwoUsage + $hwchargerThreeUsage);
 	$productionTotal      = ($hwSolarReturn + $hwInvReturn);
 	$realUsage            = ($hwP1Usage - $productionTotal);
@@ -378,15 +383,25 @@
 // Calculate Battery Input/Output Total	
 	$batteryTotalCharged    = round($batteryInputEndkWh - $batteryInputStartkWh, 2);
 	$batteryTotalDischarged = round($batteryOutputEndkWh - $batteryOutputStartkWh, 2);
-	$batteryAvail           = abs($batteryTotalCharged - $batteryTotalDischarged);
-	$batteryAvail           = round($batteryAvail / 100 * $chargerEfficiency, 2);
+	$batteryAvailRAW        = abs($batteryTotalCharged - $batteryTotalDischarged);
+	$batteryAvail           = round($batteryAvailRAW / 100 * $chargerEfficiency, 2);
 	$batteryAh				= ($batteryAh / 1000);
 	$batteryCapacity		= round($batteryVolt * $batteryAh, 2);
 	$batterySOC				= round($batteryAvail / $batteryCapacity * 100, 1);
+
+// Calculate Remaining Charge time	
 	if ($chargerOneStatus == 'On' || $chargerTwoStatus == 'On' || $chargerThreeStatus == 'On'){
-	$chargeTimeRemaining    = round($batteryCapacity / 80 * 1000 / $chargerUsage * 100, 1);
+	$chargeTimeRemaining = round(($batteryCapacity - $batteryAvailRAW) * 1000 / 80 * 100 / $chargerUsage, 1);
 	} elseif ($chargerOneStatus == 'Off' && $chargerTwoStatus == 'Off' && $chargerThreeStatus == 'Off'){
 	$chargeTimeRemaining    = 0;	
+	}
+
+// Calculate remaining discharge time	
+	if ($hwInvReturn < 0){
+	$hwInvReturnABS = abs($hwInvReturn);	
+	$disChargeTimeRemaining = round(($batteryCapacity - $batteryAvailRAW) * 1000 / 80 * 100 / $hwInvReturnABS, 1);
+	} elseif ($hwInvReturn >= 0){
+	$disChargeTimeRemaining = 0;	
 	}
 
 // Write Battery Input/Output Total
@@ -425,7 +440,13 @@
 	
 // Write Battery SOC to Domoticz
 	UpdateDomoticzDevice($batteryPercentageIDX, ''.$batterySOC.'');
+	sleep(0.5);
 	UpdateDomoticzDevice($batteryChargeTimeIDX, ''.$chargeTimeRemaining.'');
+	sleep(0.5);	
+	UpdateDomoticzDevice($batteryDischargeTimeIDX, ''.$disChargeTimeRemaining.'');
+	sleep(0.5);
+	UpdateDomoticzDevice($batteryAvailIDX, ''.$batteryAvail.'');
+	sleep(0.5);
 	
 //															     //
 // **************************************************************//
@@ -453,7 +474,10 @@
 		echo ' -/- Input/Output             -\-'.PHP_EOL;
 		echo '  -- Totaal geladen            : '.$batteryTotalCharged.' kWh'.PHP_EOL;
 		echo '  -- Totaal ontladen           : '.$batteryTotalDischarged.' kWh'.PHP_EOL;
-		echo '  -- kWh Beschikbaar (EF '.$chargerEfficiency.'%)  : '.$batteryAvail.' kWh'.PHP_EOL;
+		echo '  -- Opgeslagen energie        : '.$batteryAvail.' kWh'.PHP_EOL;
+		if ($hwInvReturn < 0){	
+		echo '  -- Ontlaad tijd tot 0%       : '.$disChargeTimeRemaining.' uur @ '.$hwInvReturn.' Watt'.PHP_EOL;	
+		}
 		echo ' '.PHP_EOL;
 		
 		echo ' -/- EcoFlow Omvormer         -\-'.PHP_EOL;
