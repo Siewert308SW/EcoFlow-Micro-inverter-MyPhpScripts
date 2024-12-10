@@ -28,7 +28,7 @@
 // Lader/Batterij variables
 	$batteryVolt		   = 25.6;								 // Voltage van je batterij
 	$batteryAh             = 200;                                // Totale Ah van alle batterijen
-	$chargerEfficiency     =  80;                                // Laad efficientie, om de daadwerkelijke beschikbare kWh uit te rekenen
+	$chargerEfficiency     =83.4;                                // Laad efficientie, om de daadwerkelijke beschikbare kWh uit te rekenen
 	$batteryMinimum		   =  10;                                // Minimale procenten die in de batterij moeten blijven zitten
 				
 // Homewizard variables
@@ -259,13 +259,15 @@
 
 // Calculate remaining charge time
 	if ($ChargerOneStatus == 'On' || $ChargerTwoStatus == 'On' || $ChargerThreeStatus == 'On'){
-	$chargeTimeRemaining    = round(($batteryCapacity - $batteryAvailRAW) * 1000 / 80 * 100 / $chargerUsage, 1);
+	$batteryCapacityRAW  = round($batteryCapacity / 80 * 100, 1);	
+	$chargeTimeRemaining = round(($batteryCapacityRAW - $batteryAvailRAW) * 1000 / 80 * 100 / $chargerUsage, 1);		
+	//$chargeTimeRemaining = round(($batteryCapacity - $batteryAvailRAW) * 1000 / 80 * 100 / $chargerUsage, 1);
 	}
 
 // Calculate remaining discharge time	
 	if ($hwInvReturn < 0){
-	$hwInvReturnABS = abs($hwInvReturn);	
-	$disChargeTimeRemaining = round(($batteryCapacity - $batteryAvailRAW) * 1000 / 80 * 100 / $hwInvReturnABS, 1);	
+	$hwInvReturnABS = abs($hwInvReturn) / 1000 ;	
+	$disChargeTimeRemaining = round($batteryAvail / $hwInvReturnABS, 1);
 	}
 	
 // determine new baseload	
