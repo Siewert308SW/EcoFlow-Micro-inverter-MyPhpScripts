@@ -31,7 +31,7 @@
 	$chargerTwoUsage	   = 600;								 // Verbruik van Lader 2 (Watt)
 	$chargerThreeUsage     = 350;								 // Verbruik van Lader 3 (Watt)
 	$chargerWattsIdle	   =  14;								 // Standby Watts van alle laders wanneer batterijen vol zijn
-	$chargerEfficiency     =  80;                                // Laad efficientie, om de daadwerkelijke beschikbare kWh uit te rekenen
+	$chargerEfficiency     =83.4;                                // Laad efficientie, om de daadwerkelijke beschikbare kWh uit te rekenen
 	$batteryMinimum		   =  10;                                // Minimale procenten die in de batterij moeten blijven zitten
 	$keepChargerOn         = 'yes';                              // Waarde ýes' of 'no' Bij 'yes' Gaat en blijft de kleinste lader langer AAN ongeacht wel of geen overschot
 	
@@ -388,18 +388,27 @@
 	$batteryAh				= ($batteryAh / 1000);
 	$batteryCapacity		= round($batteryVolt * $batteryAh, 2);
 	$batterySOC				= round($batteryAvail / $batteryCapacity * 100, 1);
+	if ($batterySOC > 100){
+	$batterySOC = 100;
+	} elseif ($batterySOC < 0){
+	$batterySOC = 0;
+	}
 
 // Calculate Remaining Charge time	
 	if ($chargerOneStatus == 'On' || $chargerTwoStatus == 'On' || $chargerThreeStatus == 'On'){
-	$chargeTimeRemaining = round(($batteryCapacity - $batteryAvailRAW) * 1000 / 80 * 100 / $chargerUsage, 1);
+	$batteryCapacityRAW  = round($batteryCapacity / 80 * 100, 1);	
+	$chargeTimeRemaining = round(($batteryCapacityRAW - $batteryAvailRAW) * 1000 / 80 * 100 / $chargerUsage, 1);		
+	
 	} elseif ($chargerOneStatus == 'Off' && $chargerTwoStatus == 'Off' && $chargerThreeStatus == 'Off'){
-	$chargeTimeRemaining    = 0;	
+	$chargeTimeRemaining    = 0;
+	
 	}
 
 // Calculate remaining discharge time	
 	if ($hwInvReturn < 0){
-	$hwInvReturnABS = abs($hwInvReturn);	
-	$disChargeTimeRemaining = round(($batteryCapacity - $batteryAvailRAW) * 1000 / 80 * 100 / $hwInvReturnABS, 1);
+	$hwInvReturnABS = abs($hwInvReturn) / 1000 ;	
+	$disChargeTimeRemaining = round($batteryAvail / $hwInvReturnABS, 1);
+	
 	} elseif ($hwInvReturn >= 0){
 	$disChargeTimeRemaining = 0;	
 	}
@@ -407,7 +416,7 @@
 // Write Battery Input/Output Total
 	if (file_exists($batteryInputStartFile) && file_exists($batteryInputEndFile)) {
 	
-		if ($chargerUsage >= $chargerWattsIdle){
+		if ($chargerUsage > 0){
 			writeBattInputEnd(''.$hwchargerTotal.'');	
 		}
 		
