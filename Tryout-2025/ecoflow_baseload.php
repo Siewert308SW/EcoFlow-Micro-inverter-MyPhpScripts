@@ -1,4 +1,12 @@
 <?php
+//															     //
+// **************************************************************//
+//           EcoFlow micro-inverter automatic baseload           //
+//                                                               //
+//                        No need to edit                        //
+// **************************************************************//
+//                                                               //
+
 // Require Ecoflow Class files
 	$files = glob(__DIR__ . '/config/*.php');
 	foreach ($files as $file) {
@@ -9,8 +17,8 @@
 	
 //															     //
 // **************************************************************//
-//        EcoFlow LiFePo4 12/12/20a Thuisbatterij Laders         //
-//                       BMS Wakker houden                       //
+//           EcoFlow micro-inverter automatic baseload           //
+//                         Keep BMS Awake                        //
 // **************************************************************//
 //                                                               //
 	if ($keepBMSalive == 'yes'){$bmsAwake = 1;}
@@ -24,7 +32,7 @@
 
 //															     //
 // **************************************************************//
-//        EcoFlow LiFePo4 12/12/20a Thuisbatterij Laders         //
+//           EcoFlow micro-inverter automatic baseload           //
 //         Calculate remaining Charge or Discharge time          //
 // **************************************************************//
 //                                                               //
@@ -54,7 +62,7 @@
 //															     //
 // **************************************************************//
 //           EcoFlow micro-inverter automatic baseload           //
-//                                                               //
+//                           Schedule                            //
 // **************************************************************//
 //                                                               //
 
@@ -73,12 +81,19 @@
 	} elseif ($runInfinity == 'yes' && $isDST == '0' && $runInfinityMidday == 'yes' && date('H:i') >= ( '12:30' ) && date('H:i') < ( ''.$sunset.'' )) {
 		$schedule = 1;
 		
-	} elseif ($runInfinity == 'yes' && $isDST == '0' && $runInfinityEvening == 'yes' && date('H:i') >= ( ''.$sunset.'' ) && date('H:i') < ( '23:30' )) {
+	} elseif ($runInfinity == 'yes' && $isDST == '0' && $runInfinityEvening == 'yes' && date('H:i') >= ( ''.$sunset.'' ) && date('H:i') < ( '23:59' )) {
 		$schedule = 1;
 		
 	} else {
 		$schedule = 0;	
 	}
+
+//															     //
+// **************************************************************//
+//           EcoFlow micro-inverter automatic baseload           //
+//                      Calculate new baseload                   //
+// **************************************************************//
+//                                                               //
 	
 // determine new baseload	
 	if ($hwP1Usage < $ecoflowMaxOutput){
@@ -96,6 +111,13 @@
 	}
 		
 	$newInvBaseload = round($newBaseload) * 10;
+
+//															     //
+// **************************************************************//
+//           EcoFlow micro-inverter automatic baseload           //
+//                       Baseload failsaves                      //
+// **************************************************************//
+//                                                               //
 	
 // Set baseload to max 	
 	if ($newBaseload > $ecoflowMaxOutput) {
@@ -129,6 +151,12 @@
 
 // Set baseload to null when battery has not been fully charged during wintertime
 	if ($batterySOC <= $batteryMinimum){
+		$newBaseload = 0;
+		$newInvBaseload = 0;
+	}
+
+// Set baseload to null when battery has not been calibrated yet
+	if ($batterySOC > 100){
 		$newBaseload = 0;
 		$newInvBaseload = 0;
 	}

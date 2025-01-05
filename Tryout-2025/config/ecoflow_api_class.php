@@ -1,4 +1,12 @@
 <?php
+//															     //
+// **************************************************************//
+//           EcoFlow micro-inverter automatic baseload           //
+//                       EcoFlow API Class                       //
+//                        No need to edit                        //
+// **************************************************************//
+//                                                               //
+
     /**
      *  Author:   Thijsmans
      *  License:  CC BY-NC 4.0 (Attribution-NonCommercial 4.0 International)

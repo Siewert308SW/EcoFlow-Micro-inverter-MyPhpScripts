@@ -1,4 +1,12 @@
 <?php
+//															     //
+// **************************************************************//
+//        EcoFlow LiFePo4 12/12/20a Homebattery Charging         //
+//         Calculate remaining Charge or Discharge time          //
+//                        No need to edit                        //
+// **************************************************************//
+//                                                               //
+
 // Require Ecoflow Class files
 	$files = glob(__DIR__ . '/config/*.php');
 	foreach ($files as $file) {
@@ -6,14 +14,7 @@
 			require($file);
 		}
 	}
-	
-//															     //
-// **************************************************************//
-//        EcoFlow LiFePo4 12/12/20a Thuisbatterij Laders         //
-//         Calculate remaining Charge or Discharge time          //
-// **************************************************************//
-//                                                               //
-	
+
 // Calculate remaining charge time
 	if ($hwChargerOneStatus == 'On' || $hwChargerTwoStatus == 'On' || $hwChargerThreeStatus == 'On'){
 		if ($batterySOC <= 100){	
@@ -38,7 +39,7 @@
 	
 //															     //
 // **************************************************************//
-//        EcoFlow LiFePo4 12/12/20a Thuisbatterij Laders         //
+//        EcoFlow LiFePo4 12/12/20a Homebattery Charging         //
 //                 Calibrate Charge kWh values?                  //
 // **************************************************************//
 //                                                               //
@@ -55,14 +56,14 @@
 
 //															     //
 // **************************************************************//
-//        EcoFlow LiFePo4 12/12/20a Thuisbatterij Laders         //
+//        EcoFlow LiFePo4 12/12/20a Homebattery Charging         //
 //                  Fase powerusage protection                   //
 // **************************************************************//
 //                                                               //
 
 	if ($hwP1Fase >= $maxFaseWatts){
-		if ($hwChargerOneStatus == 'On'){ switchHwSocket('one','Off'); sleep(5);}
-		if ($hwChargerTwoStatus == 'On'){ switchHwSocket('two','Off'); sleep(5);}
+		if ($hwChargerOneStatus == 'On'){ switchHwSocket('one','Off'); sleep(10);}
+		if ($hwChargerTwoStatus == 'On'){ switchHwSocket('two','Off'); sleep(10);}
 		if ($hwChargerThreeStatus == 'On'){ switchHwSocket('three','Off');}
 		$faseProtect = 1;
 	} else {
@@ -76,8 +77,8 @@
 	
 //															     //
 // **************************************************************//
-//        EcoFlow LiFePo4 12/12/20a Thuisbatterij Laders         //
-//                       BMS Wakker houden                       //
+//        EcoFlow LiFePo4 12/12/20a Homebattery Charging         //
+//                       Keep BMS Awake                          //
 // **************************************************************//
 //                                                               //
 	if ($keepBMSalive == 'yes'){$bmsAwake = 1;}
@@ -92,7 +93,7 @@
 
 //															     //
 // **************************************************************//
-//        EcoFlow LiFePo4 12/12/20a Thuisbatterij Laders         //
+//        EcoFlow LiFePo4 12/12/20a Homebattery Charging         //
 //                             Print                             //
 // **************************************************************//
 //                                                               //
@@ -189,8 +190,8 @@
 
 //															     //
 // **************************************************************//
-//        EcoFlow LiFePo4 12/12/20a Thuisbatterij Laders         //
-//                        Start/Stop Laden                       //
+//        EcoFlow LiFePo4 12/12/20a Homebattery Charging         //
+//                      Start/Stop Charging                      //
 // **************************************************************//
 //                                                               //
 
@@ -200,53 +201,47 @@
 		$chargerOneTwo_Usage= ($chargerOneTwoUsage);
 		$chargerThree_Usage = ($chargerThreeUsage);
 	} else {
-		$chargerOne_Usage   = ($chargerOneUsage / 2);
+		$chargerOne_Usage   = ($chargerOneUsage / 3.5);
 		$chargerTwo_Usage   = ($chargerTwoUsage / 1.5);
 		$chargerOneTwo_Usage= ($chargerOneTwoUsage / 1.5);
-		$chargerThree_Usage = ($chargerThreeUsage / 2);
+		$chargerThree_Usage = ($chargerThreeUsage / 3.5);
 	}
 	$chargerTotal_Usage = ($chargerOne_Usage + $chargerTwo_Usage + $chargerThree_Usage);
 		
 if ($faseProtect == 0 && $bmsAwake == 0){	
-	if (($hwChargerOneStatus == 'On' || $hwChargerTwoStatus == 'On' || $hwChargerThreeStatus == 'On') && ($P1ChargerUsage > $chargerOneUsage || $chargerUsage <= $chargerWattsIdle || $hwInvReturn != 0)){
+	if (($hwChargerOneStatus == 'On' || $hwChargerTwoStatus == 'On' || $hwChargerThreeStatus == 'On') && ($P1ChargerUsage > $chargerOne_Usage || $chargerUsage <= $chargerWattsIdle || $hwInvReturn != 0)){
 
-		if ($hwChargerOneStatus == 'On' && $isDST == '1' && $pvAvInputVoltage > $bmsMaximumVoltage){ switchHwSocket('one','Off'); sleep(5);}
-		if ($hwChargerOneStatus == 'On' && $isDST == '0' && $hwSolarReturn > $chargerOne_Usage && $pvAvInputVoltage > $bmsMaximumVoltage){ switchHwSocket('one','Off'); sleep(5);}			
-		if ($hwChargerTwoStatus == 'On'){ switchHwSocket('two','Off'); sleep(5);}
+		if ($hwChargerOneStatus == 'On' && $pvAvInputVoltage > $bmsMaximumVoltage){ switchHwSocket('one','Off'); sleep(10);}			
+		if ($hwChargerTwoStatus == 'On'){ switchHwSocket('two','Off'); sleep(10);}
 		if ($hwChargerThreeStatus == 'On'){ switchHwSocket('three','Off');}
-		
-		//if ($hwChargerOneStatus == 'On' && $chargerUsage <= $chargerWattsIdle){ switchHwSocket('one','Off'); sleep(5);}		
-		//if ($hwChargerTwoStatus == 'On' && $chargerUsage <= $chargerWattsIdle){ switchHwSocket('two','Off'); sleep(5);}
-		//if ($hwChargerThreeStatus == 'On' && $chargerUsage <= $chargerWattsIdle){ switchHwSocket('three','Off');}		
-
 	}
 
 // Lader 1 AAN - Lader 2 & 3 UIT			
 	if ($P1ChargerUsage > $chargerTwo_Usage && $P1ChargerUsage <= $chargerOne_Usage && $batterySOC < 100 && $hwInvReturn == 0 && $hwSolarReturn != 0){		
 
-		if ($hwChargerOneStatus == 'Off'){ switchHwSocket('one','On'); sleep(5);}
-		if ($hwChargerTwoStatus == 'On'){ switchHwSocket('two','Off'); sleep(5);}
+		if ($hwChargerOneStatus == 'Off'){ switchHwSocket('one','On'); sleep(10);}
+		if ($hwChargerTwoStatus == 'On'){ switchHwSocket('two','Off'); sleep(10);}
 		if ($hwChargerThreeStatus == 'On'){ switchHwSocket('three','Off');}
 	}
 
 // Lader 2 AAN - Lader 1 & 3 UIT
 	if ($P1ChargerUsage > $chargerOneTwo_Usage && $P1ChargerUsage <= $chargerTwo_Usage && $batterySOC < 100 && $hwInvReturn == 0 && $hwSolarReturn != 0){	
-		if ($hwChargerTwoStatus == 'Off'){ switchHwSocket('two','On'); sleep(5);}
-		if ($hwChargerOneStatus == 'On'){ switchHwSocket('one','Off'); sleep(5);}
+		if ($hwChargerTwoStatus == 'Off'){ switchHwSocket('two','On'); sleep(10);}
+		if ($hwChargerOneStatus == 'On'){ switchHwSocket('one','Off'); sleep(10);}
 		if ($hwChargerThreeStatus == 'On'){ switchHwSocket('three','Off');}
 	}
 
 // Lader 1 & 2 AAN - Lader 3 UIT
 	if ($P1ChargerUsage > $chargerTotal_Usage && $P1ChargerUsage <= $chargerOneTwo_Usage && $batterySOC < 100 && $hwInvReturn == 0 && $hwSolarReturn != 0){		
-		if ($hwChargerOneStatus == 'Off'){ switchHwSocket('one','On'); sleep(5);}
-		if ($hwChargerTwoStatus == 'Off'){ switchHwSocket('two','On'); sleep(5);}
+		if ($hwChargerOneStatus == 'Off'){ switchHwSocket('one','On'); sleep(10);}
+		if ($hwChargerTwoStatus == 'Off'){ switchHwSocket('two','On'); sleep(10);}
 		if ($hwChargerThreeStatus == 'On'){ switchHwSocket('three','Off');}
 	}
 
 // Lader 1, 2, & 3 AAN
 	if ($P1ChargerUsage <= $chargerTotal_Usage && $batterySOC < 100 && $hwInvReturn == 0 && $hwSolarReturn != 0){	
-		if ($hwChargerOneStatus == 'Off'){ switchHwSocket('one','On'); sleep(5);}
-		if ($hwChargerTwoStatus == 'Off'){ switchHwSocket('two','On'); sleep(5);}
+		if ($hwChargerOneStatus == 'Off'){ switchHwSocket('one','On'); sleep(10);}
+		if ($hwChargerTwoStatus == 'Off'){ switchHwSocket('two','On'); sleep(10);}
 		if ($hwChargerThreeStatus == 'Off'){ switchHwSocket('three','On');}
 	}
 

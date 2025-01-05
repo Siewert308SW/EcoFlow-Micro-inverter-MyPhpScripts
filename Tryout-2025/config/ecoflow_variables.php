@@ -4,6 +4,7 @@
 // **************************************************************//
 //           EcoFlow micro-inverter automatic baseload           //
 //                           Variables                           //
+//                        No need to edit                        //
 // **************************************************************//
 //                                                               //
 	
@@ -96,8 +97,8 @@
 	$chargerUsage           = ($hwChargerOneUsage + $hwChargerTwoUsage + $hwChargerThreeUsage);
 	
 // Get Battery Input/Output Total Files
-	$batteryInputFile  		= ''.$ecoflowPath.'batteryInput.txt';
-	$batteryOutputFile      = ''.$ecoflowPath.'batteryOutput.txt';
+	$batteryInputFile  		= ''.$ecoflowPath.'files/batteryInput.txt';
+	$batteryOutputFile      = ''.$ecoflowPath.'files/batteryOutput.txt';
 	
 	if (file_exists($batteryInputFile)) {
 	$batteryInputkWh        = file_get_contents(''.$batteryInputFile.'');

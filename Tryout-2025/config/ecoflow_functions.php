@@ -3,6 +3,7 @@
 // **************************************************************//
 //           EcoFlow micro-inverter automatic baseload           //
 //                           Functions                           //
+//                        No need to edit                        //
 // **************************************************************//
 //                                                               //
 
@@ -196,9 +197,9 @@
 		global $ecoflowPath;
 
 		if ($file == 'Input'){
-		$filePath = ''.$ecoflowPath.'batteryInput.txt';
+		$filePath = ''.$ecoflowPath.'files/batteryInput.txt';
 		} elseif ($file == 'Output'){
-		$filePath = ''.$ecoflowPath.'batteryOutput.txt';
+		$filePath = ''.$ecoflowPath.'files/batteryOutput.txt';
 		} else {
 		die("Unable to write file!");
 		}

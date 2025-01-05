@@ -44,9 +44,9 @@
 	$hwChargerThreeIP 	    = '000.000.000.00';     			 // IP Homewizard Charger THREE 300w socket
 	
 // Lader variables
-	$chargerOneUsage	    = 300;								 // Verbruik van Lader 1 (Watt)
+	$chargerOneUsage	    = 350;								 // Verbruik van Lader 1 (Watt)
 	$chargerTwoUsage	    = 600;								 // Verbruik van Lader 2 (Watt)
-	$chargerThreeUsage      = 300;								 // Verbruik van Lader 3 (Watt)
+	$chargerThreeUsage      = 350;								 // Verbruik van Lader 3 (Watt)
 	$chargerWattsIdle	    =  14;								 // Standby Watts van alle laders wanneer batterijen vol zijn
 	$chargerOffsetWatt	    = 1200;								 // Maximale Watts waarbij Lader 1 uitgeschakeld in de wintertijd dient te worden, ivm een grootverbruiker die maar even aan staat
 
