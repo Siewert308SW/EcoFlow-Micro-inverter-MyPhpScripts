@@ -138,7 +138,7 @@
 	}
 
 // Set baseload to null when inverter has to return less then it can deliver
-	if ($newBaseload <= 100 && $hwSolarReturn != 0) {
+	if ($newBaseload <= $ecoflowMinOutput && $hwSolarReturn != 0) {
 		$newBaseload = 0;
 		$newInvBaseload = 0;
 	}

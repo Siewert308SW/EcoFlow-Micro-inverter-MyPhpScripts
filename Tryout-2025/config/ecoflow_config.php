@@ -26,6 +26,7 @@
 				
 // Omvormer variables
 	$ecoflowMaxOutput	    = 600;								 // Maximale teruglevering (Watts) wat de omvormer kan/mag leveren. 
+	$ecoflowMinOutput	    = 100;								 // Minimale teruglevering (Watts) Onder dit getal (Watt) zal de omvormer niet terugleveren. 
 	$ecoflowOutputOffSet    = 10;								 // Trek deze value (watts) af van de nieuwe baseload, Deze value wordt alsnog van het net wordt getrokken om teruglevering te voorkomen
 	$maxInvTemp             = 65;								 // Maximale interne temperatuur, daarboven stopt de omvormer met terugleveren 
 
