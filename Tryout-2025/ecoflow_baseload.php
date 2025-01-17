@@ -18,21 +18,6 @@
 //															     //
 // **************************************************************//
 //           EcoFlow micro-inverter automatic baseload           //
-//                         Keep BMS Awake                        //
-// **************************************************************//
-//                                                               //
-	if ($keepBMSalive == 'yes'){$bmsAwake = 1;}
-	if ($keepBMSalive == 'yes' && $hwChargerOneStatus == 'Off' && $pvAvInputVoltage > 0 && $pvAvInputVoltage <= $bmsMinimumVoltage && $hwInvReturn == 0/*&& $hwSolarReturn != 0*/) {
-	$bmsAwake = 1;
-	} elseif ($keepBMSalive == 'yes' && $hwChargerOneStatus == 'On' && $pvAvInputVoltage > $bmsMinimumVoltage && $pvAvInputVoltage <= $bmsMaximumVoltage && $hwInvReturn == 0/*&& $hwSolarReturn != 0*/) {
-	$bmsAwake = 1;
-	} else {
-	$bmsAwake = 0;
-	}
-
-//															     //
-// **************************************************************//
-//           EcoFlow micro-inverter automatic baseload           //
 //         Calculate remaining Charge or Discharge time          //
 // **************************************************************//
 //                                                               //
@@ -68,21 +53,62 @@
 
 // Schedule Manual 
 	if ($runInfinity == 'no' && date('H:i') >= ( ''.$invStartTime.'' ) && date('H:i') <= ( ''.$invEndTime.'' )) {
-		$schedule = 1;
+
+		if ($batterySaveUp == 'yes' && $batteryCycle == 'Leeg') {
+			$schedule = 0;
+		} elseif (($batterySaveUp == 'yes') && ($batteryCycle == 'Standby' || $batteryCycle == 'Vol')) {
+			$schedule = 1;
+		} elseif ($batterySaveUp == 'no') {
+			$schedule = 1;
+		}
 		
 // Schedule Summertime into infinity
 	} elseif ($runInfinity == 'yes' && $isDST == '1') {
-		$schedule = 1;
+		
+		if ($batterySaveUp == 'yes' && $batteryCycle == 'Leeg') {
+			$schedule = 0;
+		} elseif (($batterySaveUp == 'yes') && ($batteryCycle == 'Standby' || $batteryCycle == 'Vol')) {
+			$schedule = 1;
+		} elseif ($batterySaveUp == 'no') {
+			$schedule = 1;
+		}
 
 // Schedule Wintertime		
-	} elseif ($runInfinity == 'yes' && $isDST == '0' && $runInfinityNight == 'yes' && date('H:i') >= ( '00:00' ) && date('H:i') < ( '12:30' )) {
-		$schedule = 1;
+	} elseif ($runInfinity == 'yes' && $isDST == '0' && $runInfinityNight == 'yes' && date('H:i') >= ( '00:00' ) && date('H:i') < ( ''.$invEndTime.'' )) {
 
-	} elseif ($runInfinity == 'yes' && $isDST == '0' && $runInfinityMidday == 'yes' && date('H:i') >= ( '12:30' ) && date('H:i') < ( ''.$sunset.'' )) {
-		$schedule = 1;
+
+		if ($batterySaveUp == 'yes' && $batteryCycle == 'Leeg' && $batterySOC < $batteryMinimum) {
+			$schedule = 0;
+		} elseif ($batterySaveUp == 'yes' && $batteryCycle == 'Leeg' && $batterySOC > $batteryMinimum) {
+			$schedule = 1;
+		} elseif (($batterySaveUp == 'yes') && ($batteryCycle == 'Standby' || $batteryCycle == 'Vol')) {
+			$schedule = 1;
+			if ($batteryCycle == 'Vol') {
+			writeBattInputOutput('Standby','Cycle');
+			}
+		} elseif ($batterySaveUp == 'no') {
+			$schedule = 1;
+		}
+
+	} elseif ($runInfinity == 'yes' && $isDST == '0' && $runInfinityMidday == 'yes' && date('H:i') >= ( ''.$invEndTime.'' ) && date('H:i') < ( ''.$sunset.'' )) {
+
+		if ($batterySaveUp == 'yes' && $batteryCycle == 'Leeg') {
+			$schedule = 0;
+		} elseif (($batterySaveUp == 'yes') && ($batteryCycle == 'Standby' || $batteryCycle == 'Vol')) {
+			$schedule = 1;
+		} elseif ($batterySaveUp == 'no') {
+			$schedule = 1;
+		}
 		
 	} elseif ($runInfinity == 'yes' && $isDST == '0' && $runInfinityEvening == 'yes' && date('H:i') >= ( ''.$sunset.'' ) && date('H:i') < ( '23:59' )) {
-		$schedule = 1;
+		
+		if ($batterySaveUp == 'yes' && $batteryCycle == 'Leeg') {
+			$schedule = 0;
+		} elseif (($batterySaveUp == 'yes') && ($batteryCycle == 'Standby' || $batteryCycle == 'Vol')) {
+			$schedule = 1;
+		} elseif ($batterySaveUp == 'no') {
+			$schedule = 1;
+		}
 		
 	} else {
 		$schedule = 0;	
@@ -130,14 +156,14 @@
 		$newBaseload = 0;
 		$newInvBaseload = 0;
 	}
-	
+
 // Set baseload to null when SwitchTime is negative
 	if ($schedule == 0) {
 		$newBaseload = 0;
 		$newInvBaseload = 0;
 	}
 
-// Set baseload to null when inverter has to return less then it can deliver
+// Set baseload to null when inverter has to return less then it has to deliver
 	if ($newBaseload <= $ecoflowMinOutput && $hwSolarReturn != 0) {
 		$newBaseload = 0;
 		$newInvBaseload = 0;
@@ -150,7 +176,7 @@
 	}
 
 // Set baseload to null when battery has not been fully charged during wintertime
-	if ($batterySOC <= $batteryMinimum){
+	if ($batterySOC < $batteryMinimum){
 		$newBaseload = 0;
 		$newInvBaseload = 0;
 	}
@@ -165,7 +191,7 @@
 	if ($pvAvInputVoltage <= $bmsMinimumVoltage && $hwInvReturn != 0) {
 		$newBaseload = 0;
 		$newInvBaseload = 0;
-	} elseif ($pvAvInputVoltage > 0 && $pvAvInputVoltage <= $bmsMaximumVoltage && $hwInvReturn == 0) {
+	} elseif ($pvAvInputVoltage > 0 && $pvAvInputVoltage <= $bmsRestoredVoltage && $hwInvReturn == 0) {
 		$newBaseload = 0;
 		$newInvBaseload = 0;
 	}	
@@ -202,7 +228,7 @@
 
 // Print Battery Status
 		echo ' -/- Batterij                 -\-'.PHP_EOL;
-		echo '  -- Batterij voltage          : '.$pvAvInputVoltage.' Volt'.PHP_EOL;
+		echo '  -- Batterij Voltage          : '.$pvAvInputVoltage.' Volt'.PHP_EOL;
 		echo '  -- Batterij SOC              : '.$batterySOC.'%'.PHP_EOL;		
 		echo '  -- Opgeslagen energie        : '.$batteryAvailable.' kWh'.PHP_EOL;
 		if ($chargerUsage >= $chargerWattsIdle){
@@ -211,9 +237,7 @@
 		if ($hwInvReturn < 0){		
 		echo '  -- Ontlaadtijd (resterend)   : '.$realDischargeTime.' u(ren)'.PHP_EOL;			
 		}
-		if ($bmsAwake == 1) {
-		echo '  -- BMS Awake laden           : actief'.PHP_EOL;	
-		}
+		echo '  -- Batterij cycle            : '.$batteryCycle.''.PHP_EOL;
 		echo ' '.PHP_EOL;
 
 // Print Schakeltijd
@@ -222,20 +246,24 @@
 		echo '  -- Start Tijd                : '.$invStartTime.''.PHP_EOL;
 		echo '  -- Eind Tijd                 : '.$invEndTime.''.PHP_EOL;			
 		}
-		echo '  -- $runInfinity              : '.$runInfinity.''.PHP_EOL;
-		echo '  -- $runInfinityMidday        : '.$runInfinityMidday.''.PHP_EOL;
-		echo '  -- $runInfinityEvening       : '.$runInfinityEvening.''.PHP_EOL;	
-		echo '  -- $runInfinityNight         : '.$runInfinityNight.''.PHP_EOL;			
 		if ($schedule == 1) {
 		echo '  -- Schakeltijd               : true'.PHP_EOL;
 		} else {
 		echo '  -- Schakeltijd               : false'.PHP_EOL;
 		}
+		if ($isDST == '1') {
+		echo '  -- Zomertijd programma       : actief'.PHP_EOL;
+		} else {
+		echo '  -- Wintertijd programma      : actief'.PHP_EOL;
+		}
+		echo '  -- $runInfinity              : '.$runInfinity.''.PHP_EOL;
+		echo '  -- $runInfinityMidday        : '.$runInfinityMidday.''.PHP_EOL;
+		echo '  -- $runInfinityEvening       : '.$runInfinityEvening.''.PHP_EOL;	
+		echo '  -- $runInfinityNight         : '.$runInfinityNight.''.PHP_EOL;			
 		echo ' '.PHP_EOL;
 		
 // Print Inverter Status
 		echo ' -/- EcoFlow Omvormer         -\-'.PHP_EOL;
-		echo '  -- SN Nummer                 : '.$ecoflowSerialNumber.''.PHP_EOL;
 		if ($ecoflowStatus == 1) {
 		echo '  -- EcoFlow Status            : Online'.PHP_EOL;
 		} else {
@@ -244,26 +272,12 @@
 		echo '  -- Temperatuur               : '.$invTemp.'˚C'.PHP_EOL;		
 		echo ' '.PHP_EOL;
 
-// Print Various
-		echo ' -/- Various                  -\-'.PHP_EOL;
-		echo '  -- L'.$fase.' bescherming            : '.$faseProtection.''.PHP_EOL;
-		echo '  -- Houd BMS wakker           : '.$keepBMSalive.''.PHP_EOL;
-		if ($isDST == '1') {
-		echo '  -- Zomertijd programma       : actief'.PHP_EOL;
-		} else {
-		echo '  -- Wintertijd programma      : actief'.PHP_EOL;
-		}
-		echo ' '.PHP_EOL;
-		
 // Print Energie Status
 		echo ' -/- Energie                  -\-'.PHP_EOL;
 		echo '  -- P1-Meter                  : '.$hwP1Usage.' Watt'.PHP_EOL;
 		echo '  -- Zonnepanelen opwek        : '.$hwSolarReturn.' Watt'.PHP_EOL;
 		echo '  -- Batterij Opwek            : '.$hwInvReturn.' Watt'.PHP_EOL;
 		echo '  -- Echte Verbruik            : '.$realUsage.' Watt'.PHP_EOL;
-		if ($hwChargerOneStatus == 'On' || $hwChargerTwoStatus == 'On' || $hwChargerThreeStatus == 'On') {
-		echo '  -- Stroomverbruik excl laders: '.$P1ChargerUsage.' Watt'.PHP_EOL;
-		}
 		if ($newBaseload != 0) {
 		echo '  -- Stroom vraag              : true'.PHP_EOL;
 		} else {
