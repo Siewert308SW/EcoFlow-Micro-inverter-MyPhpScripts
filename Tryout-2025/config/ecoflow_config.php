@@ -9,12 +9,15 @@
 // Debug?
 	$debug				    = 'yes';							 // Waarde 'yes' of 'no'
 
+// Debug?
+	$override				= 'no';							 // Waarde 'yes' of 'no' Bij 'yes' kun je tijdelijk de laders aan laten ongeacht op overschot of niet
+	
 // Tijd variables
 	$invStartTime		    = '00:00';							 // Omvormer starttijd (bij $runInfinity == 'no')
 	$invEndTime			    = '12:30';							 // Omvormer eindtijd (bij $runInfinity == 'no')
 	$runInfinity		    = 'yes';		    				 // Waarde 'yes', 'no' bij 'yes' zal de omvormer indien mogelijk en afhankelijk van de instellingen altijd blijven opwekken
-	$runInfinityMidday	    = 'no';								 // Waarde 'yes', 'no' bij 'yes' zal opladen voorrang hebben in de winter
-	$runInfinityEvening	    = 'yes';							 // Waarde 'yes', 'no' bij 'yes' zal er in de winter in de avond geen opwek zijn
+	$runInfinityMidday	    = 'yes';						     // Waarde 'yes', 'no' bij 'yes' zal opladen voorrang hebben in de winter
+	$runInfinityEvening	    = 'no';		    					 // Waarde 'yes', 'no' bij 'yes' zal er in de winter in de avond geen opwek zijn
 	$runInfinityNight	    = 'yes';							 // Waarde 'yes', 'no' bij 'yes' zal er in de winter in de nacht geen opwek zijn
 
 // Lokatie variables tbv $sunset/$sunrise
@@ -33,9 +36,10 @@
 // Batterij variables
 	$batteryVolt		    = 25.6;								 // Voltage van de batterij
 	$batteryAh              = 200;                               // Totale Ah van alle batterijen
-	$chargerEfficiency      =  83;                               // Lader laad efficientie
-	$batteryMinimum		    =  10;                               // Minimale procenten die in de batterij moeten blijven
-	
+	$chargerEfficiency      =  78.6;                             // Lader laad efficientie
+	$batteryMinimum		    =  5;                               // Minimale procenten die in de batterij moeten blijven
+	$batterySaveUp			= 'yes';							 // Waarde 'yes' of 'no' Bij 'yes' zal de omvormer niet eerder teruglveren als je ladd cycles 100% is.
+
 // Homewizard variables
 	$hwP1IP				    = '000.000.000.00';					 // IP Homewizard P1 Meter
 	$hwKwhIP			    = '000.000.000.00';					 // IP Homewizard Solar kwh Meter
@@ -49,7 +53,6 @@
 	$chargerTwoUsage	    = 600;								 // Verbruik van Lader 2 (Watt)
 	$chargerThreeUsage      = 350;								 // Verbruik van Lader 3 (Watt)
 	$chargerWattsIdle	    =  14;								 // Standby Watts van alle laders wanneer batterijen vol zijn
-	$chargerOffsetWatt	    = 1200;								 // Maximale Watts waarbij Lader 1 uitgeschakeld in de wintertijd dient te worden, ivm een grootverbruiker die maar even aan staat
 
 // Fase protection
 	$faseProtection		    = 'yes';                             // Waarde 'yes' of 'no'
@@ -58,7 +61,7 @@
 	
 // Battery BMS variables
 	$keepBMSalive		    = 'yes';                             // Indien batterij is leeg getrokken zal er een beetje bij geladen worden om de BMS wakker te houden
-	$bmsMinimumVoltage      = 21.6;                              // Minimale Voltage van de batterij (volgens de EcoFlow app), De batterij zal een beetje bijladen om de BMS wakker te houden
+	$bmsMinimumVoltage      = 22.6;                              // Minimale Voltage van de batterij (volgens de EcoFlow app), De batterij zal een beetje bijladen om de BMS wakker te houden
 	
 // Ecoflow Powerstream API variables
 	$ecoflowPath		    = '/Path/2/Files/';	                 // Path waar je scripts zich bevinden
