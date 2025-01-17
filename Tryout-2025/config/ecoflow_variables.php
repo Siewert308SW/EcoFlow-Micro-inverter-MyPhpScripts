@@ -8,26 +8,6 @@
 // **************************************************************//
 //                                                               //
 	
-// php.ini
-	date_default_timezone_set(''.$timezone.'');
-
-// Time/Date now
-	$timeNow = date('H:i');
-	$dateNow = date('Y-m-d H:i:s');
-	$dateTime = new DateTime(''.$dateNow.'', new DateTimeZone(''.$timezone.''));
-
-// Check DSt time
-	$isDST = $dateTime->format("I");
-	if ($isDST == '1'){
-	$gmt = '1';
-	} else {
-	$gmt = '0';
-	}
-
-// Get Sunrise/Sunset
-	$sunrise              = (date_sunrise(time(),SUNFUNCS_RET_STRING,$latitude,$longitude,$zenitLat,$gmt));
-	$sunset               = (date_sunset(time(),SUNFUNCS_RET_STRING,$latitude,$longitude,$zenitLong,$gmt));
-
 // Get Ecoflow status
 	$ecoflow = new EcoFlowAPI(''.$ecoflowAccessKey.'', ''.$ecoflowSecretKey.'');
 	$inv = $ecoflow->getDevice($ecoflowSerialNumber);
@@ -75,8 +55,9 @@
 // Get Current Baseload
 	$currentBaseload	    = ($inv['data']['20_1.permanentWatts']) / 10;
 
-// Set bmsMaximumVoltage
-	$bmsMaximumVoltage      = ($bmsMinimumVoltage + 1);
+// Set bmsRestoreVoltage
+	$bmsRestoreVoltage      = ($bmsMinimumVoltage + 1.4);
+	$bmsRestoredVoltage     = ($bmsMinimumVoltage + 0.7);
 	
 // Get Inverter Temperature
 	$invTemp                = ($inv['data']['20_1.llcTemp']) / 10;
@@ -86,7 +67,7 @@
 	$productionTotal        = ($hwSolarReturn + $hwInvReturn);
 	$realUsage              = ($hwP1Usage - $productionTotal);
 	$P1ChargerUsage         = ($hwP1Usage - $chargerUsage);
-
+	
 	$chargerOneUsage  	    = -abs($chargerOneUsage);
 	$chargerTwoUsage  	    = -abs($chargerTwoUsage);
 	$chargerOneTwoUsage     = -abs($chargerOneUsage + $chargerTwoUsage); 
@@ -99,6 +80,7 @@
 // Get Battery Input/Output Total Files
 	$batteryInputFile  		= ''.$ecoflowPath.'files/batteryInput.txt';
 	$batteryOutputFile      = ''.$ecoflowPath.'files/batteryOutput.txt';
+	$batteryCycleFile       = ''.$ecoflowPath.'files/batteryCycle.txt';
 	
 	if (file_exists($batteryInputFile)) {
 	$batteryInputkWh        = file_get_contents(''.$batteryInputFile.'');
@@ -113,9 +95,17 @@
 	} else {
 	$batteryOutputkWh       = 0;
 	}
+
+	if (file_exists($batteryCycleFile)) {
+	$batteryCycle           = file_get_contents(''.$batteryCycleFile.'');
+	} else {
+	$batteryCycle           = 'Standby';
+	}
 	
 // Get/Set Battery Charge/Discharge/SOC values
 	$batteryCapacity        = round($batteryVolt * $batteryAh / 1000, 2);
+	$batteryVoltCharged     = round($batteryVolt + 1, 2);
+	$batteryVoltAlmostCharged= round($batteryVolt + 0.8, 2);
 	$batteryCharged         = round($hwChargersTotalInput - $batteryInputkWh,2);
 	$batteryDischarged      = round($hwInvTotal - $batteryOutputkWh,2);
 	$batteryAvailable       = round(($batteryCharged / 100 * $chargerEfficiency) - $batteryDischarged,2);
@@ -124,5 +114,25 @@
 	$hwInvReturnABS         = round(abs(($hwInvReturn) / 1000), 2);
 	$batteryInputCal        = round(($hwChargersTotalInput) - $batteryCapacity / $chargerEfficiency * 100,2);
 	$batteryOutputCal       = round($hwInvTotal - $batteryCapacity,2);
+
+// php.ini
+	date_default_timezone_set(''.$timezone.'');
+
+// Time/Date now
+	$timeNow = date('H:i');
+	$dateNow = date('Y-m-d H:i:s');
+	$dateTime = new DateTime(''.$dateNow.'', new DateTimeZone(''.$timezone.''));
+
+// Check DSt time
+	$isDST = $dateTime->format("I");
+	if ($isDST == '1'){
+	$gmt = '1';
+	} else {
+	$gmt = '0';
+	}
+
+// Get Sunrise/Sunset
+	$sunrise              = (date_sunrise(time(),SUNFUNCS_RET_STRING,$latitude,$longitude,$zenitLat,$gmt));
+	$sunset               = (date_sunset(time(),SUNFUNCS_RET_STRING,$latitude,$longitude,$zenitLong,$gmt));
 	
 ?>
