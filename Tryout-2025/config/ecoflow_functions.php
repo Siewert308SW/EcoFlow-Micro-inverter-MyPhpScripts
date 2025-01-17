@@ -200,6 +200,8 @@
 		$filePath = ''.$ecoflowPath.'files/batteryInput.txt';
 		} elseif ($file == 'Output'){
 		$filePath = ''.$ecoflowPath.'files/batteryOutput.txt';
+		} elseif ($file == 'Cycle'){
+		$filePath = ''.$ecoflowPath.'files/batteryCycle.txt';
 		} else {
 		die("Unable to write file!");
 		}
