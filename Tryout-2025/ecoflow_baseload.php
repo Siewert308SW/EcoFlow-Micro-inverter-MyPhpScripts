@@ -53,61 +53,23 @@
 
 // Schedule Manual 
 	if ($runInfinity == 'no' && date('H:i') >= ( ''.$invStartTime.'' ) && date('H:i') <= ( ''.$invEndTime.'' )) {
-
-		if ($batterySaveUp == 'yes' && $batteryCycle == 'Leeg') {
-			$schedule = 0;
-		} elseif (($batterySaveUp == 'yes') && ($batteryCycle == 'Standby' || $batteryCycle == 'Vol')) {
-			$schedule = 1;
-		} elseif ($batterySaveUp == 'no') {
-			$schedule = 1;
-		}
+		$schedule = 1;
 		
-// Schedule Summertime into infinity
-	} elseif ($runInfinity == 'yes' && $isDST == '1') {
+// Schedule into infinity
+	} elseif ($runInfinity == 'yes') {
 		
-		if ($batterySaveUp == 'yes' && $batteryCycle == 'Leeg') {
-			$schedule = 0;
-		} elseif (($batterySaveUp == 'yes') && ($batteryCycle == 'Standby' || $batteryCycle == 'Vol')) {
-			$schedule = 1;
-		} elseif ($batterySaveUp == 'no') {
-			$schedule = 1;
-		}
-
-// Schedule Wintertime		
-	} elseif ($runInfinity == 'yes' && $isDST == '0' && $runInfinityNight == 'yes' && date('H:i') >= ( '00:00' ) && date('H:i') < ( ''.$invEndTime.'' )) {
-
-
-		if ($batterySaveUp == 'yes' && $batteryCycle == 'Leeg' && $batterySOC < $batteryMinimum) {
-			$schedule = 0;
-		} elseif ($batterySaveUp == 'yes' && $batteryCycle == 'Leeg' && $batterySOC > $batteryMinimum) {
-			$schedule = 1;
-		} elseif (($batterySaveUp == 'yes') && ($batteryCycle == 'Standby' || $batteryCycle == 'Vol')) {
-			$schedule = 1;
-			if ($batteryCycle == 'Vol') {
-			writeBattInputOutput('Standby','Cycle');
-			}
-		} elseif ($batterySaveUp == 'no') {
-			$schedule = 1;
-		}
-
-	} elseif ($runInfinity == 'yes' && $isDST == '0' && $runInfinityMidday == 'yes' && date('H:i') >= ( ''.$invEndTime.'' ) && date('H:i') < ( ''.$sunset.'' )) {
-
-		if ($batterySaveUp == 'yes' && $batteryCycle == 'Leeg') {
-			$schedule = 0;
-		} elseif (($batterySaveUp == 'yes') && ($batteryCycle == 'Standby' || $batteryCycle == 'Vol')) {
-			$schedule = 1;
-		} elseif ($batterySaveUp == 'no') {
-			$schedule = 1;
-		}
+		if ($isDST == '1'){
+		$schedule = 1;
+			
+		} elseif ($isDST == '0' && date('H:i') >= ( '00:00' ) && date('H:i') < ( ''.$invEndTime.'' )){
+		$schedule = 1;
+			
+		} elseif ($isDST == '0' && date('H:i') >= ( ''.$sunset.'' ) && date('H:i') < ( '23:59' )){
+		$schedule = 1;	
+			
+		} else {
+		$schedule = 0;
 		
-	} elseif ($runInfinity == 'yes' && $isDST == '0' && $runInfinityEvening == 'yes' && date('H:i') >= ( ''.$sunset.'' ) && date('H:i') < ( '23:59' )) {
-		
-		if ($batterySaveUp == 'yes' && $batteryCycle == 'Leeg') {
-			$schedule = 0;
-		} elseif (($batterySaveUp == 'yes') && ($batteryCycle == 'Standby' || $batteryCycle == 'Vol')) {
-			$schedule = 1;
-		} elseif ($batterySaveUp == 'no') {
-			$schedule = 1;
 		}
 		
 	} else {
@@ -153,46 +115,53 @@
 	
 // Set baseload to null when charging
 	if ($hwChargerOneStatus == 'On' || $hwChargerTwoStatus == 'On' || $hwChargerThreeStatus == 'On') {
-		$newBaseload = 0;
+		$newBaseload    = 0;
 		$newInvBaseload = 0;
 	}
 
 // Set baseload to null when SwitchTime is negative
 	if ($schedule == 0) {
-		$newBaseload = 0;
+		$newBaseload    = 0;
 		$newInvBaseload = 0;
 	}
 
 // Set baseload to null when inverter has to return less then it has to deliver
 	if ($newBaseload <= $ecoflowMinOutput && $hwSolarReturn != 0) {
-		$newBaseload = 0;
+		$newBaseload    = 0;
 		$newInvBaseload = 0;
 	}
 
 // Set baseload to null when inverter is getting to hot
 	if ($invTemp >= $maxInvTemp) {
-		$newBaseload = 0;
-		$newInvBaseload = 0;
+		$newBaseload    = ($ecoflowMaxOutput) / 2;
+		$newInvBaseload = ($ecoflowMaxOutput / 2) * 10;
 	}
 
 // Set baseload to null when battery has not been fully charged during wintertime
 	if ($batterySOC < $batteryMinimum){
-		$newBaseload = 0;
+		$newBaseload    = 0;
 		$newInvBaseload = 0;
 	}
 
 // Set baseload to null when battery has not been calibrated yet
 	if ($batterySOC > 100){
-		$newBaseload = 0;
+		$newBaseload    = 0;
 		$newInvBaseload = 0;
 	}
 	
 // Set baseload to null when battery is empty #failsave if SOC is calculate wrong
 	if ($pvAvInputVoltage <= $bmsMinimumVoltage && $hwInvReturn != 0) {
-		$newBaseload = 0;
+		$newBaseload    = 0;
 		$newInvBaseload = 0;
+		
 	} elseif ($pvAvInputVoltage > 0 && $pvAvInputVoltage <= $bmsRestoredVoltage && $hwInvReturn == 0) {
-		$newBaseload = 0;
+		$newBaseload    = 0;
+		$newInvBaseload = 0;
+	}
+
+// Set baseload to null when batterySaveUp is active and battery not yet fully charged
+	if ($batteryCycle == 'Leeg' && $batterySaveUp == 'yes') {
+		$newBaseload    = 0;
 		$newInvBaseload = 0;
 	}	
 	
@@ -250,16 +219,7 @@
 		echo '  -- Schakeltijd               : true'.PHP_EOL;
 		} else {
 		echo '  -- Schakeltijd               : false'.PHP_EOL;
-		}
-		if ($isDST == '1') {
-		echo '  -- Zomertijd programma       : actief'.PHP_EOL;
-		} else {
-		echo '  -- Wintertijd programma      : actief'.PHP_EOL;
-		}
-		echo '  -- $runInfinity              : '.$runInfinity.''.PHP_EOL;
-		echo '  -- $runInfinityMidday        : '.$runInfinityMidday.''.PHP_EOL;
-		echo '  -- $runInfinityEvening       : '.$runInfinityEvening.''.PHP_EOL;	
-		echo '  -- $runInfinityNight         : '.$runInfinityNight.''.PHP_EOL;			
+		}		
 		echo ' '.PHP_EOL;
 		
 // Print Inverter Status
@@ -297,6 +257,11 @@
 		echo '  -- Baseload update           : true'.PHP_EOL;
 		}
 		$ecoflow->setDeviceFunction($ecoflowSerialNumber, 'WN511_SET_PERMANENT_WATTS_PACK', ['permanent_watts' => $newInvBaseload]);
+
+			if ($batteryCycle == 'Vol') {
+			writeBattInputOutput('Standby','Cycle');
+			}
+			
 	} else {
 		if ($debug == 'yes'){
 		echo '  -- Baseload update           : false'.PHP_EOL;	
