@@ -135,4 +135,43 @@
 	$sunrise              = (date_sunrise(time(),SUNFUNCS_RET_STRING,$latitude,$longitude,$zenitLat,$gmt));
 	$sunset               = (date_sunset(time(),SUNFUNCS_RET_STRING,$latitude,$longitude,$zenitLong,$gmt));
 	
+// URLs
+	$baseUrl = 'http://'.$domoticzIP.'/json.htm?type=command&param=getdevices&rid=';
+	$urls    = [
+	'heaterWcdIDX'    => $baseUrl . $heaterWcdIDX,
+	'quookerWcdIDX'   => $baseUrl . $quookerWcdIDX,
+	'aanrecht1WcdIDX' => $baseUrl . $aanrecht1WcdIDX,
+	'aanrecht2WcdIDX' => $baseUrl . $aanrecht2WcdIDX,
+	'natalyaWcdIDX'   => $baseUrl . $natalyaWcdIDX,
+	'afzuigkapWcdIDX' => $baseUrl . $afzuigkapWcdIDX,
+	'vaatwasserWcdIDX'=> $baseUrl . $vaatwasserWcdIDX
+	];
+
+	$baseLocalUrl = 'http://127.0.0.1:8080/json.htm?type=command&param=getdevices&rid=';
+	$urlsLocal    = ['overrideSwitch' => $baseLocalUrl . $overrideSwitchIDX];
+	
+// Get Domoticz devices Usage
+	$heaterWatts_data 	  = json_decode(file_get_contents($urls['heaterWcdIDX']), true);
+	$heaterWatts 	  	  = intval($heaterWatts_data['result'][0]['Data'] ?? 0);
+
+	$quookerWatts_data 	  = json_decode(file_get_contents($urls['quookerWcdIDX']), true);
+	$quookerWatts 	  	  = intval($quookerWatts_data['result'][0]['Data'] ?? 0);
+	
+	$aanrecht1Watts_data  = json_decode(file_get_contents($urls['aanrecht1WcdIDX']), true);
+	$aanrecht1Watts 	  = intval($aanrecht1Watts_data['result'][0]['Data'] ?? 0);
+	
+	$aanrecht2Watts_data  = json_decode(file_get_contents($urls['aanrecht2WcdIDX']), true);
+	$aanrecht2Watts 	  = intval($aanrecht2Watts_data['result'][0]['Data'] ?? 0);
+
+	$natalyaWatts_data 	  = json_decode(file_get_contents($urls['natalyaWcdIDX']), true);
+	$natalyaWatts 	  	  = intval($natalyaWatts_data['result'][0]['Data'] ?? 0);
+
+	$afzuigkapWatts_data  = json_decode(file_get_contents($urls['afzuigkapWcdIDX']), true);
+	$afzuigkapWatts 	  = intval($afzuigkapWatts_data['result'][0]['Data'] ?? 0);
+
+	$vaatwasserWatts_data = json_decode(file_get_contents($urls['vaatwasserWcdIDX']), true);
+	$vaatwasserWatts 	  = intval($vaatwasserWatts_data['result'][0]['Data'] ?? 0);
+
+	$override_data       = json_decode(file_get_contents($urlsLocal['overrideSwitch']), true);
+	$overrideSwitch      = $override_data['result'][0]['Status'];
 ?>
