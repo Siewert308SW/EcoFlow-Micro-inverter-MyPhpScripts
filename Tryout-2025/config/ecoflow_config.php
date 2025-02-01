@@ -10,7 +10,7 @@
 	$debug				    = 'yes';							 // Waarde 'yes' of 'no'
 
 // Manual override opladen
-	$manualChargeOverride	= 'no';							     // Waarde 'yes' of 'no' Bij 'yes' kun je tijdelijk de laders aan laten ongeacht overschot of niet, laders gaan uit wanneer batterijen vol zijn
+	$manualChargeOverride	= 'off';							 // Waarde 'off' 'auto' 'solar' 'manual' of P1
 	
 // Tijd variables
 	$invStartTime		    = '00:00';							 // Omvormer starttijd (bij $runInfinity == 'no')
@@ -25,18 +25,18 @@
 	$timezone               = 'Europe/Amsterdam';			     // Mijn php.ini slikt de timezone niet dus dan maar handmatig instelling
 				
 // Omvormer variables
-	$ecoflowMaxOutput	    = 600;								 // Maximale teruglevering (Watts) wat de omvormer kan/mag leveren. 
-	$ecoflowMinOutput	    = 100;								 // Minimale teruglevering (Watts) Onder dit getal (Watt) zal de omvormer niet terugleveren. 
+	$ecoflowMaxOutput	    = 575;								 // Maximale teruglevering (Watts) wat de omvormer kan/mag leveren. 
+	$ecoflowMinOutput	    = 75;								 // Minimale teruglevering (Watts) Onder dit getal (Watt) zal de omvormer niet terugleveren. 
 	$ecoflowOutputOffSet    = 10;								 // Trek deze value (watts) af van de nieuwe baseload, Deze value wordt alsnog van het net wordt getrokken om teruglevering te voorkomen
-	$maxInvTemp             = 67;								 // Maximale interne temperatuur, daarboven stopt de omvormer met terugleveren 
+	$ecoflowMaxInvTemp      = 65;								 // Maximale interne temperatuur, daarboven stopt de omvormer met terugleveren 
 
 // Batterij variables
 	$batteryVolt		    = 25.6;								 // Voltage van de batterij
 	$batteryAh              = 200;                               // Totale Ah van alle batterijen
-	$chargerEfficiency      = 83.4;                              // Lader laad efficientie
-	$batteryMinimum		    = 10;                                 // Minimale procenten die in de batterij moeten blijven
-	$batterySaveUp			= 'yes';							 // Waarde 'yes' of 'no' Bij 'yes' zal de omvormer niet eerder teruglveren als je laad cycles 100% is.
-
+	$chargerEfficiency      = 79.9;                              // Lader laad efficientie
+	$batteryMinimum		    = 10;                                // Minimale procenten die in de batterij moeten blijven
+	$batteryNightSOC		= 50;								 // Minimale SOC wat voor de nacht bij $runInfinity actief in de winter bewaard moet blijven
+	
 // Homewizard variables
 	$hwP1IP				    = '000.000.000.00';					 // IP Homewizard P1 Meter
 	$hwKwhIP			    = '000.000.000.00';					 // IP Homewizard Solar kwh Meter
@@ -53,12 +53,12 @@
 
 // Fase protection
 	$faseProtection		    = 'yes';                             // Waarde 'yes' of 'no'
-	$maxFaseWatts		    = 5000;                              // Bij verbruik op de Fase hoger dan aangegeven Watts zullen alle laders uitschakelen om de maximale belasting van de Fase niet te overschrijden
+	$maxFaseWatts		    = 4500;                              // Bij verbruik op de Fase hoger dan aangegeven Watts zullen alle laders uitschakelen om de maximale belasting van de Fase niet te overschrijden
 	$fase				    = 1;                                 // Welke Fase moet beschermd worden
 	
 // Battery BMS variables
 	$keepBMSalive		    = 'yes';                             // Indien batterij is leeg getrokken zal er een beetje bij geladen worden om de BMS wakker te houden
-	$bmsMinimumVoltage      = 22.6;                              // Minimale Voltage van de batterij (volgens de EcoFlow app), De batterij zal een beetje bijladen om de BMS wakker te houden
+	$bmsMinimumVoltage      = 22.1;                              // Minimale Voltage van de batterij (volgens de EcoFlow app), De batterij zal een beetje bijladen om de BMS wakker te houden
 
 // Domoticz variables
 	$domoticzIP			    = '127.0.0.1:8080'; 	    	 // IP + poort van Domoticz
@@ -69,7 +69,9 @@
 	$natalyaWcdIDX	        = '';
 	$afzuigkapWcdIDX        = '';
 	$vaatwasserWcdIDX       = '';
-	$overrideSwitchIDX      = '';
+	$boilerWcdIDX           = '';
+	$controlSwitchIDX       = '';
+	$dummySwitchIDX         = '';
 	
 // Ecoflow Powerstream API variables
 	$ecoflowPath		    = '/Path/2/Files/';	                 // Path waar je scripts zich bevinden
