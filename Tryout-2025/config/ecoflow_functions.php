@@ -91,6 +91,8 @@
 		curl_setopt($socket, CURLOPT_URL, 'http://'.$hwChargerOneIP.'/api/v1/state');
 		} elseif ($energySocket == 'three') {
 		curl_setopt($socket, CURLOPT_URL, 'http://'.$hwChargerThreeIP.'/api/v1/state');
+		} elseif ($energySocket == 'inv') {
+		curl_setopt($socket, CURLOPT_URL, 'http://'.$hwEcoFlowIP.'/api/v1/state');
 		}
 		curl_setopt($socket, CURLOPT_RETURNTRANSFER, true);
 		curl_setopt($socket, CURLOPT_CUSTOMREQUEST, 'PUT');
@@ -200,8 +202,6 @@
 		$filePath = ''.$ecoflowPath.'files/batteryInput.txt';
 		} elseif ($file == 'Output'){
 		$filePath = ''.$ecoflowPath.'files/batteryOutput.txt';
-		} elseif ($file == 'Cycle'){
-		$filePath = ''.$ecoflowPath.'files/batteryCycle.txt';
 		} else {
 		die("Unable to write file!");
 		}
