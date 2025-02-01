@@ -11,7 +11,7 @@
 	$files = glob(__DIR__ . '/config/*.php');
 	foreach ($files as $file) {
 		if ($file != __FILE__) {
-			require($file);
+			require_once($file);
 		}
 	}
 	
@@ -59,23 +59,24 @@
 	} elseif ($runInfinity == 'yes') {
 		
 		if ($isDST == '1'){
-		$schedule = 1;
+			$schedule = 1;
 			
 		} elseif ($isDST == '0' && date('H:i') >= ( '00:00' ) && date('H:i') < ( ''.$invEndTime.'' )){
-		$schedule = 1;
+			$schedule = 1;
+
+		} elseif ($isDST == '0' && date('H:i') >= ( ''.$invEndTime.'' ) && date('H:i') < ( ''.$sunset.'' ) && $hwSolarReturn == 0 && $batterySOC >= $batteryNightSOC){
+			$schedule = 1;
 			
-		} elseif ($isDST == '0' && date('H:i') >= ( ''.$sunset.'' ) && date('H:i') < ( '23:59' )){
-		$schedule = 1;	
+		} elseif ($isDST == '0' && date('H:i') >= ( ''.$sunset.'' ) && date('H:i') < ( '23:59' ) && $hwSolarReturn == 0 && $batterySOC >= $batteryNightSOC){
+			$schedule = 1;
 			
 		} else {
-		$schedule = 0;
-		
-		}
-		
-	} else {
 		$schedule = 0;	
-	}
+		}
 
+	} else {
+	$schedule = 0;	
+	}
 //															     //
 // **************************************************************//
 //           EcoFlow micro-inverter automatic baseload           //
@@ -132,7 +133,7 @@
 	}
 
 // Set baseload to null when inverter is getting to hot
-	if ($invTemp >= $maxInvTemp) {
+	if ($invTemp >= $ecoflowMaxInvTemp) {
 		$newBaseload    = ($ecoflowMaxOutput) / 2;
 		$newInvBaseload = ($ecoflowMaxOutput / 2) * 10;
 	}
@@ -154,16 +155,16 @@
 		$newBaseload    = 0;
 		$newInvBaseload = 0;
 		
-	} elseif ($pvAvInputVoltage > 0 && $pvAvInputVoltage <= $bmsRestoredVoltage && $hwInvReturn == 0) {
+	} elseif ($pvAvInputVoltage > 0 && $pvAvInputVoltage < $bmsRestoredVoltage && $hwInvReturn == 0) {
 		$newBaseload    = 0;
 		$newInvBaseload = 0;
 	}
 
-// Set baseload to null when batterySaveUp is active and battery not yet fully charged
-	if ($batteryCycle == 'Leeg' && $batterySaveUp == 'yes') {
+// Set baseload to null when override switch is active
+	if ($controlSwitch == 'Off') {
 		$newBaseload    = 0;
 		$newInvBaseload = 0;
-	}	
+	}
 	
 //															     //
 // **************************************************************//
@@ -206,7 +207,6 @@
 		if ($hwInvReturn < 0){		
 		echo '  -- Ontlaadtijd (resterend)   : '.$realDischargeTime.' u(ren)'.PHP_EOL;			
 		}
-		echo '  -- Batterij cycle            : '.$batteryCycle.''.PHP_EOL;
 		echo ' '.PHP_EOL;
 
 // Print Schakeltijd
@@ -214,6 +214,11 @@
 		if ($runInfinity == 'no'){
 		echo '  -- Start Tijd                : '.$invStartTime.''.PHP_EOL;
 		echo '  -- Eind Tijd                 : '.$invEndTime.''.PHP_EOL;			
+		}
+		if ($isDST == '1') {
+		echo '  -- Zomertijd programma       : actief'.PHP_EOL;
+		} else {
+		echo '  -- Wintertijd programma      : actief'.PHP_EOL;
 		}
 		if ($schedule == 1) {
 		echo '  -- Schakeltijd               : true'.PHP_EOL;
@@ -257,10 +262,6 @@
 		echo '  -- Baseload update           : true'.PHP_EOL;
 		}
 		$ecoflow->setDeviceFunction($ecoflowSerialNumber, 'WN511_SET_PERMANENT_WATTS_PACK', ['permanent_watts' => $newInvBaseload]);
-
-			if ($batteryCycle == 'Vol') {
-			writeBattInputOutput('Standby','Cycle');
-			}
 			
 	} else {
 		if ($debug == 'yes'){
