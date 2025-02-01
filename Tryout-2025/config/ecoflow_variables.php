@@ -30,7 +30,8 @@
 	$hwChargerOneStatus     = getHwStatus($hwChargerOneIP);
 	$hwChargerTwoStatus     = getHwStatus($hwChargerTwoIP);
 	$hwChargerThreeStatus   = getHwStatus($hwChargerThreeIP);
-
+	$hwInvStatus            = getHwStatus($hwEcoFlowIP);
+	
 	$hwInvTotal             = getHwTotalOutputData($hwEcoFlowIP);
 	$hwChargerOneTotal      = getHwTotalInputData($hwChargerOneIP);
 	$hwChargerTwoTotal      = getHwTotalInputData($hwChargerTwoIP);
@@ -56,8 +57,8 @@
 	$currentBaseload	    = ($inv['data']['20_1.permanentWatts']) / 10;
 
 // Set bmsRestoreVoltage
-	$bmsRestoreVoltage      = ($bmsMinimumVoltage + 1.4);
-	$bmsRestoredVoltage     = ($bmsMinimumVoltage + 0.7);
+	$bmsRestoreVoltage      = ($bmsMinimumVoltage + 1.2);
+	$bmsRestoredVoltage     = ($bmsMinimumVoltage + 0.5);
 	
 // Get Inverter Temperature
 	$invTemp                = ($inv['data']['20_1.llcTemp']) / 10;
@@ -68,20 +69,36 @@
 	$realUsage              = ($hwP1Usage - $productionTotal);
 	$P1ChargerUsage         = ($hwP1Usage - $chargerUsage);
 	
+	if ($hwChargerOneStatus == 'Off'){
 	$chargerOneUsage  	    = -abs($chargerOneUsage);
-	$chargerTwoUsage  	    = -abs($chargerTwoUsage);
-	$chargerOneTwoUsage     = -abs($chargerOneUsage + $chargerTwoUsage); 
-	$chargerThreeUsage      = -abs($chargerThreeUsage);
-	$chargerTotalUsage      = ($chargerOneUsage + $chargerTwoUsage + $chargerThreeUsage);
+	} elseif ($hwChargerOneStatus == 'On'){
+	$chargerOneUsage  	    = -abs($chargerOneUsage) / 1.2;
+	}
 
+	if ($hwChargerTwoStatus == 'Off'){
+	$chargerTwoUsage  	    = -abs($chargerTwoUsage);
+	} elseif ($hwChargerTwoStatus == 'On'){
+	$chargerTwoUsage  	    = -abs($chargerTwoUsage) / 1.2;
+	}
+
+	$chargerOneTwoUsage  	= -abs($chargerOneUsage + $chargerTwoUsage);
+	
+	if ($hwChargerThreeStatus == 'Off'){
+	$chargerThreeUsage  	= -abs($chargerThreeUsage);
+	} elseif ($hwChargerThreeStatus == 'On'){
+	$chargerThreeUsage  	= -abs($chargerThreeUsage) / 1.2;
+	}
+	
+	$chargerTotalUsage      = ($chargerOneUsage + $chargerTwoUsage + $chargerThreeUsage);
+	$chargerTotalUsageABS   = abs($chargerOneUsage + $chargerTwoUsage + $chargerThreeUsage);
+	
 // Determine total charger usage
 	$chargerUsage           = ($hwChargerOneUsage + $hwChargerTwoUsage + $hwChargerThreeUsage);
 	
 // Get Battery Input/Output Total Files
 	$batteryInputFile  		= ''.$ecoflowPath.'files/batteryInput.txt';
 	$batteryOutputFile      = ''.$ecoflowPath.'files/batteryOutput.txt';
-	$batteryCycleFile       = ''.$ecoflowPath.'files/batteryCycle.txt';
-	
+
 	if (file_exists($batteryInputFile)) {
 	$batteryInputkWh        = file_get_contents(''.$batteryInputFile.'');
 	$batteryInputkWh        = round($batteryInputkWh, 2);
@@ -95,17 +112,11 @@
 	} else {
 	$batteryOutputkWh       = 0;
 	}
-
-	if (file_exists($batteryCycleFile)) {
-	$batteryCycle           = file_get_contents(''.$batteryCycleFile.'');
-	} else {
-	$batteryCycle           = 'Standby';
-	}
 	
 // Get/Set Battery Charge/Discharge/SOC values
 	$batteryCapacity        = round($batteryVolt * $batteryAh / 1000, 2);
 	$batteryVoltCharged     = round($batteryVolt + 1, 2);
-	$batteryVoltAlmostCharged= round($batteryVolt + 0.8, 2);
+	$batteryVoltAlmostCharged= round($batteryVolt + 0.9, 2);
 	$batteryCharged         = round($hwChargersTotalInput - $batteryInputkWh,2);
 	$batteryDischarged      = round($hwInvTotal - $batteryOutputkWh,2);
 	$batteryAvailable       = round(($batteryCharged / 100 * $chargerEfficiency) - $batteryDischarged,2);
@@ -144,11 +155,12 @@
 	'aanrecht2WcdIDX' => $baseUrl . $aanrecht2WcdIDX,
 	'natalyaWcdIDX'   => $baseUrl . $natalyaWcdIDX,
 	'afzuigkapWcdIDX' => $baseUrl . $afzuigkapWcdIDX,
-	'vaatwasserWcdIDX'=> $baseUrl . $vaatwasserWcdIDX
+	'vaatwasserWcdIDX'=> $baseUrl . $vaatwasserWcdIDX,
+	'boilerWcdIDX'    => $baseUrl . $boilerWcdIDX
 	];
 
 	$baseLocalUrl = 'http://127.0.0.1:8080/json.htm?type=command&param=getdevices&rid=';
-	$urlsLocal    = ['overrideSwitch' => $baseLocalUrl . $overrideSwitchIDX];
+	$urlsLocal    = ['controlSwitch' => $baseLocalUrl . $controlSwitchIDX,'dummySwitch' => $baseLocalUrl . $dummySwitchIDX];
 	
 // Get Domoticz devices Usage
 	$heaterWatts_data 	  = json_decode(file_get_contents($urls['heaterWcdIDX']), true);
@@ -172,6 +184,13 @@
 	$vaatwasserWatts_data = json_decode(file_get_contents($urls['vaatwasserWcdIDX']), true);
 	$vaatwasserWatts 	  = intval($vaatwasserWatts_data['result'][0]['Data'] ?? 0);
 
-	$override_data       = json_decode(file_get_contents($urlsLocal['overrideSwitch']), true);
-	$overrideSwitch      = $override_data['result'][0]['Status'];
+	$boilerWatts_data     = json_decode(file_get_contents($urls['boilerWcdIDX']), true);
+	$boilerWatts 	      = intval($boilerWatts_data['result'][0]['Data'] ?? 0);
+	
+	$control_data         = json_decode(file_get_contents($urlsLocal['controlSwitch']), true);
+	$controlSwitch        = $control_data['result'][0]['Data'];
+
+	$dummy_data           = json_decode(file_get_contents($urlsLocal['dummySwitch']), true);
+	$dummySwitch          = $dummy_data['result'][0]['Data'];
+	
 ?>
