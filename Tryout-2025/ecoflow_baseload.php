@@ -18,35 +18,6 @@
 //															     //
 // **************************************************************//
 //           EcoFlow micro-inverter automatic baseload           //
-//         Calculate remaining Charge or Discharge time          //
-// **************************************************************//
-//                                                               //
-	
-// Calculate remaining charge time
-	if ($hwChargerOneStatus == 'On' || $hwChargerTwoStatus == 'On' || $hwChargerThreeStatus == 'On'){
-		if ($batterySOC <= 100){	
-		$chargeTimeRemaining    = round(abs(($batteryCapacity - $batteryAvailable) * 1000 / $chargerEfficiency * 100 / $chargerUsage), 2);				
-		} else {
-		$chargeTimeRemaining    = 0;	
-		}
-	} elseif ($hwChargerOneStatus == 'Off' && $hwChargerTwoStatus == 'Off' && $hwChargerThreeStatus == 'Off'){
-	$chargeTimeRemaining    = 0;
-	}
-	
-// Calculate remaining discharge time	
-	if ($hwInvReturn < 0){
-	$hwInvReturnABS = abs($hwInvReturn) / 1000 ;	
-	$disChargeTimeRemaining = round(($batteryAvailable - $batteryMinimumLeft) / $hwInvReturnABS, 3);
-	} elseif ($hwInvReturn >= 0){
-	$disChargeTimeRemaining = 0;	
-	}
-	
-	$realChargeTime    = convertTime($chargeTimeRemaining);
-	$realDischargeTime = convertTime($disChargeTimeRemaining);
-	
-//															     //
-// **************************************************************//
-//           EcoFlow micro-inverter automatic baseload           //
 //                           Schedule                            //
 // **************************************************************//
 //                                                               //
@@ -57,26 +28,31 @@
 		
 // Schedule into infinity
 	} elseif ($runInfinity == 'yes') {
+		$schedule = 1;
+
+// Schedule day
+	} elseif ($runInfinity == 'day' && date('H:i') >= ( ''.$sunrise.'' ) && date('H:i') < ( ''.$sunset.'' )) {
+		$schedule = 1;
 		
-		if ($isDST == '1'){
-			$schedule = 1;
-			
-		} elseif ($isDST == '0' && date('H:i') >= ( '00:00' ) && date('H:i') < ( ''.$invEndTime.'' )){
-			$schedule = 1;
+// Schedule night
+	} elseif ($runInfinity == 'night' && date('H:i') >= ( '00:00' ) && date('H:i') < ( ''.$sunrise.'' )) {
+		$schedule = 1;
 
-		} elseif ($isDST == '0' && date('H:i') >= ( ''.$invEndTime.'' ) && date('H:i') < ( ''.$sunset.'' ) && $hwSolarReturn == 0 && $batterySOC >= $batteryNightSOC){
-			$schedule = 1;
-			
-		} elseif ($isDST == '0' && date('H:i') >= ( ''.$sunset.'' ) && date('H:i') < ( '23:59' ) && $hwSolarReturn == 0 && $batterySOC >= $batteryNightSOC){
-			$schedule = 1;
-			
-		} else {
-		$schedule = 0;	
-		}
+// Schedule when dark
+	} elseif ($runInfinity == 'dark' && $hwSolarReturn == 0) {
+		$schedule = 1;
 
+// Schedule auto
+	} elseif ($runInfinity == 'auto' && $isDST == '0' && date('H:i') >= ( '00:00' ) && date('H:i') < ( ''.$invEndTime.'' ) && $hwSolarReturn > $chargerOneUsage) {
+		$schedule = 1;
+
+	} elseif ($runInfinity == 'auto' && $isDST == '1' && $hwSolarReturn <= $chargerOneUsage) {
+		$schedule = 1;
+		
 	} else {
-	$schedule = 0;	
+		$schedule = 0;	
 	}
+
 //															     //
 // **************************************************************//
 //           EcoFlow micro-inverter automatic baseload           //
@@ -84,7 +60,6 @@
 // **************************************************************//
 //                                                               //
 	
-// determine new baseload	
 	if ($hwP1Usage < $ecoflowMaxOutput){
 		$newLoad = ($hwP1Usage + $currentBaseload) - $ecoflowOutputOffSet;
 		
@@ -132,13 +107,13 @@
 		$newInvBaseload = 0;
 	}
 
-// Set baseload to null when inverter is getting to hot
+// Limit baseload when inverter is getting to hot
 	if ($invTemp >= $ecoflowMaxInvTemp) {
 		$newBaseload    = ($ecoflowMaxOutput) / 2;
 		$newInvBaseload = ($ecoflowMaxOutput / 2) * 10;
 	}
 
-// Set baseload to null when battery has not been fully charged during wintertime
+// Set baseload to null when battery empty
 	if ($batterySOC < $batteryMinimum){
 		$newBaseload    = 0;
 		$newInvBaseload = 0;
@@ -161,7 +136,7 @@
 	}
 
 // Set baseload to null when override switch is active
-	if ($controlSwitch == 'Off') {
+	if ($controlSwitch == 'Off' || $controlSwitch == 'Stop') {
 		$newBaseload    = 0;
 		$newInvBaseload = 0;
 	}
@@ -214,11 +189,6 @@
 		if ($runInfinity == 'no'){
 		echo '  -- Start Tijd                : '.$invStartTime.''.PHP_EOL;
 		echo '  -- Eind Tijd                 : '.$invEndTime.''.PHP_EOL;			
-		}
-		if ($isDST == '1') {
-		echo '  -- Zomertijd programma       : actief'.PHP_EOL;
-		} else {
-		echo '  -- Wintertijd programma      : actief'.PHP_EOL;
 		}
 		if ($schedule == 1) {
 		echo '  -- Schakeltijd               : true'.PHP_EOL;
