@@ -69,31 +69,11 @@
 	$realUsage              = ($hwP1Usage - $productionTotal);
 	$P1ChargerUsage         = ($hwP1Usage - $chargerUsage);
 	
-	if ($hwChargerOneStatus == 'Off'){
-	$chargerOneUsage  	    = -abs($chargerOneUsage);
-	} elseif ($hwChargerOneStatus == 'On'){
-	$chargerOneUsage  	    = -abs($chargerOneUsage) / 1.2;
-	}
-
-	if ($hwChargerTwoStatus == 'Off'){
-	$chargerTwoUsage  	    = -abs($chargerTwoUsage);
-	} elseif ($hwChargerTwoStatus == 'On'){
-	$chargerTwoUsage  	    = -abs($chargerTwoUsage) / 1.2;
-	}
-
-	$chargerOneTwoUsage  	= -abs($chargerOneUsage + $chargerTwoUsage);
-	
-	if ($hwChargerThreeStatus == 'Off'){
-	$chargerThreeUsage  	= -abs($chargerThreeUsage);
-	} elseif ($hwChargerThreeStatus == 'On'){
-	$chargerThreeUsage  	= -abs($chargerThreeUsage) / 1.2;
-	}
-	
+	$chargerOneUsage  	    = -abs($chargerOneWatts);
+	$chargerTwoUsage  	    = -abs($chargerTwoWatts);	
+	$chargerOneTwoUsage  	= -abs($chargerOneWatts + $chargerTwoWatts);
+	$chargerThreeUsage  	= -abs($chargerThreeWatts);
 	$chargerTotalUsage      = ($chargerOneUsage + $chargerTwoUsage + $chargerThreeUsage);
-	$chargerTotalUsageABS   = abs($chargerOneUsage + $chargerTwoUsage + $chargerThreeUsage);
-	
-// Determine total charger usage
-	$chargerUsage           = ($hwChargerOneUsage + $hwChargerTwoUsage + $hwChargerThreeUsage);
 	
 // Get Battery Input/Output Total Files
 	$batteryInputFile  		= ''.$ecoflowPath.'files/batteryInput.txt';
@@ -116,7 +96,7 @@
 // Get/Set Battery Charge/Discharge/SOC values
 	$batteryCapacity        = round($batteryVolt * $batteryAh / 1000, 2);
 	$batteryVoltCharged     = round($batteryVolt + 1, 2);
-	$batteryVoltAlmostCharged= round($batteryVolt + 0.9, 2);
+	$batteryVoltAlmostCharged= round($batteryVolt + 0.7, 2);
 	$batteryCharged         = round($hwChargersTotalInput - $batteryInputkWh,2);
 	$batteryDischarged      = round($hwInvTotal - $batteryOutputkWh,2);
 	$batteryAvailable       = round(($batteryCharged / 100 * $chargerEfficiency) - $batteryDischarged,2);
@@ -154,13 +134,11 @@
 	'aanrecht1WcdIDX' => $baseUrl . $aanrecht1WcdIDX,
 	'aanrecht2WcdIDX' => $baseUrl . $aanrecht2WcdIDX,
 	'natalyaWcdIDX'   => $baseUrl . $natalyaWcdIDX,
-	'afzuigkapWcdIDX' => $baseUrl . $afzuigkapWcdIDX,
-	'vaatwasserWcdIDX'=> $baseUrl . $vaatwasserWcdIDX,
-	'boilerWcdIDX'    => $baseUrl . $boilerWcdIDX
+	'afzuigkapWcdIDX' => $baseUrl . $afzuigkapWcdIDX
 	];
 
 	$baseLocalUrl = 'http://127.0.0.1:8080/json.htm?type=command&param=getdevices&rid=';
-	$urlsLocal    = ['controlSwitch' => $baseLocalUrl . $controlSwitchIDX,'dummySwitch' => $baseLocalUrl . $dummySwitchIDX];
+	$urlsLocal    = ['controlSwitch' => $baseLocalUrl . $controlSwitchIDX,'baseloadSwitch' => $baseLocalUrl . $baseloadSwitchIDX];
 	
 // Get Domoticz devices Usage
 	$heaterWatts_data 	  = json_decode(file_get_contents($urls['heaterWcdIDX']), true);
@@ -180,17 +158,32 @@
 
 	$afzuigkapWatts_data  = json_decode(file_get_contents($urls['afzuigkapWcdIDX']), true);
 	$afzuigkapWatts 	  = intval($afzuigkapWatts_data['result'][0]['Data'] ?? 0);
-
-	$vaatwasserWatts_data = json_decode(file_get_contents($urls['vaatwasserWcdIDX']), true);
-	$vaatwasserWatts 	  = intval($vaatwasserWatts_data['result'][0]['Data'] ?? 0);
-
-	$boilerWatts_data     = json_decode(file_get_contents($urls['boilerWcdIDX']), true);
-	$boilerWatts 	      = intval($boilerWatts_data['result'][0]['Data'] ?? 0);
 	
 	$control_data         = json_decode(file_get_contents($urlsLocal['controlSwitch']), true);
 	$controlSwitch        = $control_data['result'][0]['Data'];
-
-	$dummy_data           = json_decode(file_get_contents($urlsLocal['dummySwitch']), true);
-	$dummySwitch          = $dummy_data['result'][0]['Data'];
 	
+	$baseload_data        = json_decode(file_get_contents($urlsLocal['baseloadSwitch']), true);
+	$baseloadSwitch       = $baseload_data['result'][0]['Data'];
+
+// Calculate remaining charge time
+	if ($hwChargerOneStatus == 'On' || $hwChargerTwoStatus == 'On' || $hwChargerThreeStatus == 'On'){
+		if ($batterySOC <= 100){	
+		$chargeTimeRemaining    = round(abs(($batteryCapacity - $batteryAvailable) * 1000 / $chargerEfficiency * 100 / $chargerUsage), 2);				
+		} else {
+		$chargeTimeRemaining    = 0;	
+		}
+	} elseif ($hwChargerOneStatus == 'Off' && $hwChargerTwoStatus == 'Off' && $hwChargerThreeStatus == 'Off'){
+	$chargeTimeRemaining    = 0;
+	}
+	
+// Calculate remaining discharge time	
+	if ($hwInvReturn < 0){
+	$hwInvReturnABS = abs($hwInvReturn) / 1000 ;	
+	$disChargeTimeRemaining = round(($batteryAvailable - $batteryMinimumLeft) / $hwInvReturnABS, 3);
+	} elseif ($hwInvReturn >= 0){
+	$disChargeTimeRemaining = 0;	
+	}
+	
+	$realChargeTime    = convertTime($chargeTimeRemaining);
+	$realDischargeTime = convertTime($disChargeTimeRemaining);	
 ?>
