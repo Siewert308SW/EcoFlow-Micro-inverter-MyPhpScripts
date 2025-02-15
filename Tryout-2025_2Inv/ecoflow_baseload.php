@@ -43,7 +43,7 @@
 		$schedule = 1;
 
 // Schedule auto
-	} elseif ($runInfinity == 'auto' && $isDST == '0' && date('H:i') >= ( '00:00' ) && date('H:i') < ( ''.$invEndTime.'' ) && $hwSolarReturn > $chargerOneUsage) {
+	} elseif ($runInfinity == 'auto' && $isDST == '0' && date('H:i') >= ( '00:00' ) && date('H:i') < ( ''.$invEndTime.'' )) {
 		$schedule = 1;
 
 	} elseif ($runInfinity == 'auto' && $isDST == '1' && $hwSolarReturn <= $chargerOneUsage) {
@@ -143,6 +143,12 @@
 
 // Set baseload to null when a inverter is offline
 	if ($ecoflowOneStatus == 0 || $ecoflowTwoStatus == 0) {
+		$newBaseload    = 0;
+		$newInvBaseload = 0;
+	}
+	
+// Set baseload to null
+	if ($controlSwitch == 'Off' || $controlSwitch == 'Stop' || $controlSwitch == 'Manual') {
 		$newBaseload    = 0;
 		$newInvBaseload = 0;
 	}
