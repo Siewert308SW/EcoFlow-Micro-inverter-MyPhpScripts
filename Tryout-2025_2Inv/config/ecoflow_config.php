@@ -11,7 +11,7 @@
 
 // Tijd variables
 	$invStartTime		    = '00:00';							 // Omvormer starttijd (bij $runInfinity == 'no')
-	$invEndTime			    = '12:30';							 // Omvormer eindtijd (bij $runInfinity == 'no')
+	$invEndTime			    = '13:00';							 // Omvormer eindtijd (bij $runInfinity == 'no')
 	$runInfinity		    = 'auto';		    				 // Waarde 'day', 'night', 'dark', 'yes', 'no' bij 'yes' zal de omvormer indien mogelijk en afhankelijk van de instellingen altijd blijven opwekken
 	
 // Lokatie variables
@@ -23,7 +23,7 @@
 				
 // Omvormer variables
 	$ecoflowMaxOutput	    = 1200;								 // Maximale teruglevering (Watts) wat de omvormer kan/mag leveren. 
-	$ecoflowMinOutput	    = 50;								 // Minimale teruglevering (Watts) Onder dit getal (Watt) zal de omvormer niet terugleveren. 
+	$ecoflowMinOutput	    = 100;								 // Minimale teruglevering (Watts) Onder dit getal (Watt) zal de omvormer niet terugleveren. 
 	$ecoflowOutputOffSet    = 15;								 // Trek deze value (watts) af van de nieuwe baseload, Deze value wordt alsnog van het net wordt getrokken om teruglevering te voorkomen
 	$ecoflowMaxInvTemp      = 65;								 // Maximale interne temperatuur, daarboven stopt de omvormer met terugleveren 
 
@@ -44,7 +44,7 @@
 	
 // Lader variables
 	$chargerOneWatts	    = 350;								 // Verbruik van Lader 1 (Watt)
-	$chargerTwoWatts	    = 650;								 // Verbruik van Lader 2 (Watt)
+	$chargerTwoWatts	    = 600;								 // Verbruik van Lader 2 (Watt)
 	$chargerThreeWatts      = 350;								 // Verbruik van Lader 3 (Watt)
 	$chargerWattsIdle	    =  14;								 // Standby Watts van alle laders wanneer batterijen vol zijn
 	$chargerOffSet			= 300;
