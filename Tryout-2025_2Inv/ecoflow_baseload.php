@@ -43,12 +43,18 @@
 		$schedule = 1;
 
 // Schedule auto
-	} elseif ($runInfinity == 'auto' && $isDST == '0' && date('H:i') >= ( '00:00' ) && date('H:i') < ( ''.$invEndTime.'' )) {
+	} elseif ($runInfinity == 'auto' && $isDST == '0' && date('H:i') >= ( '00:00' ) && date('H:i') < ( ''.$sunrise.'' )) {
 		$schedule = 1;
 
-	} elseif ($runInfinity == 'auto' && $isDST == '1' && $hwSolarReturn <= $chargerOneUsage) {
+	} elseif ($runInfinity == 'auto' && $isDST == '0' && date('H:i') >= ( ''.$sunrise.'' ) && date('H:i') < ( ''.$sunset.'' ) && $batteryState == 'Ready') {
 		$schedule = 1;
 		
+	} elseif ($runInfinity == 'auto' && $isDST == '0' && date('H:i') >= ( ''.$sunset.'' ) && date('H:i') < ( '23:59' ) && $batteryState == 'Ready') {
+		$schedule = 1;
+		
+	} elseif ($runInfinity == 'auto' && $isDST == '1' && $batteryState == 'Ready') {
+		$schedule = 1;
+	
 	} else {
 		$schedule = 0;	
 	}
@@ -135,12 +141,6 @@
 		$newInvBaseload = 0;
 	}
 
-// Set baseload to null when override switch is active
-	if ($controlSwitch == 'Off' || $controlSwitch == 'Stop') {
-		$newBaseload    = 0;
-		$newInvBaseload = 0;
-	}
-
 // Set baseload to null when a inverter is offline
 	if ($ecoflowOneStatus == 0 || $ecoflowTwoStatus == 0) {
 		$newBaseload    = 0;
@@ -186,7 +186,8 @@
 // Print Battery Status
 		echo ' -/- Batterij                 -\-'.PHP_EOL;
 		echo '  -- Batterij Voltage          : '.$pvAvInputVoltage.' Volt'.PHP_EOL;
-		echo '  -- Batterij SOC              : '.$batterySOC.'%'.PHP_EOL;		
+		echo '  -- Batterij SOC              : '.$batterySOC.'%'.PHP_EOL;
+		echo '  -- Batterij State            : '.$batteryState.''.PHP_EOL;		
 		echo '  -- Opgeslagen energie        : '.$batteryAvailable.' kWh'.PHP_EOL;
 		if ($chargerUsage >= $chargerWattsIdle){
 		echo '  -- Oplaadtijd (resterend)    : '.$realChargeTime.' u(ren)'.PHP_EOL;
@@ -211,16 +212,8 @@
 		
 // Print Inverter Status
 		echo ' -/- EcoFlow Omvormers        -\-'.PHP_EOL;
-		if ($ecoflowOneStatus == 1) {
-		echo '  -- Omvormer 1                : Online'.PHP_EOL;
-		} else {
-		echo '  -- Omvormer 1                : Offline'.PHP_EOL;
-		}
-		if ($ecoflowTwoStatus == 1) {
-		echo '  -- Omvormer 2                : Online'.PHP_EOL;
-		} else {
-		echo '  -- Omvormer 2                : Offline'.PHP_EOL;
-		}
+		echo '  -- Huidige Baseload Inv 1    : '.$currentOneBaseload.' Watt'.PHP_EOL;
+		echo '  -- Huidige Baseload Inv 2    : '.$currentTwoBaseload.' Watt'.PHP_EOL;
 		echo '  -- Omvormer 1 Temperatuur    : '.$invOneTemp.'˚C'.PHP_EOL;
 		echo '  -- Omvormer 2 Temperatuur    : '.$invTwoTemp.'˚C'.PHP_EOL;		
 		echo ' '.PHP_EOL;
@@ -241,8 +234,6 @@
 // Print Nieuwe Baseload
 		echo ' -/- Baseload                 -\-'.PHP_EOL;
 		echo '  -- Huidige Baseload          : '.$currentBaseload.' Watt'.PHP_EOL;
-		echo '  -- Huidige Baseload Inv 1    : '.$currentOneBaseload.' Watt'.PHP_EOL;
-		echo '  -- Huidige Baseload Inv 2    : '.$currentTwoBaseload.' Watt'.PHP_EOL;
 		echo '  -- Nieuwe  Baseload          : '.$newBaseload.' Watt'.PHP_EOL;
 	}
 	
@@ -252,7 +243,7 @@
 		echo '  -- Baseload update           : true'.PHP_EOL;
 		}
 	
-		if ($newBaseload < 600) {
+		if ($newBaseload < 400) {
 		$invBaseload = ($newInvBaseload);
 		$ecoflow->setDeviceFunction($ecoflowOneSerialNumber, 'WN511_SET_PERMANENT_WATTS_PACK', ['permanent_watts' => $invBaseload]);	
 		
@@ -260,10 +251,18 @@
 			$ecoflow->setDeviceFunction($ecoflowTwoSerialNumber, 'WN511_SET_PERMANENT_WATTS_PACK', ['permanent_watts' => 0]);			
 			}
 			
-		} elseif ($newBaseload >= 600) {
+		} elseif ($newBaseload >= 400) {
 			$invBaseload = ($newInvBaseload) / 2;
 			$ecoflow->setDeviceFunction($ecoflowOneSerialNumber, 'WN511_SET_PERMANENT_WATTS_PACK', ['permanent_watts' => $invBaseload]);
+			sleep(2);
+			if ($invBaseload > $ecoflowMinOutput) {
 			$ecoflow->setDeviceFunction($ecoflowTwoSerialNumber, 'WN511_SET_PERMANENT_WATTS_PACK', ['permanent_watts' => $invBaseload]);
+			
+			} elseif ($invBaseload <= $ecoflowMinOutput) {
+				if ($currentTwoBaseload != 0) {
+				$ecoflow->setDeviceFunction($ecoflowTwoSerialNumber, 'WN511_SET_PERMANENT_WATTS_PACK', ['permanent_watts' => 0]);			
+				}				
+			}
 		}
 		
 	} else {
