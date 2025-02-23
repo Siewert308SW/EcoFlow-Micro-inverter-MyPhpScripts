@@ -23,8 +23,8 @@
 //                                                               //
 
 	if ($hwP1Fase >= $maxFaseWatts){
-		if ($hwChargerOneStatus == 'On'){ switchHwSocket('one','Off'); sleep(15);}
-		if ($hwChargerTwoStatus == 'On'){ switchHwSocket('two','Off'); sleep(15);}
+		if ($hwChargerOneStatus == 'On'){ switchHwSocket('one','Off'); sleep(1);}
+		if ($hwChargerTwoStatus == 'On'){ switchHwSocket('two','Off'); sleep(1);}
 		if ($hwChargerThreeStatus == 'On'){ switchHwSocket('three','Off');}
 		$faseProtect = 1;
 	} else {
@@ -43,14 +43,15 @@
 // **************************************************************//
 //                                                               //  
 
-	if ($keepBMSalive == 'yes' && $hwChargerOneStatus == 'Off' && $pvAvInputVoltage > 0 && $pvAvInputVoltage < $bmsMinimumVoltage) {
+	if ($keepBMSalive == 'yes' && $hwChargerOneStatus == 'Off' && $hwChargerThreeStatus == 'Off' && $pvAvInputVoltage > 0 && $pvAvInputVoltage < $bmsMinimumVoltage && $hwInvReturn == 0) {
 		$bmsAwake = 1;
 		if ($hwChargerOneStatus == 'Off'){ switchHwSocket('one','On'); sleep(15);}
-		if ($hwChargerTwoStatus == 'Off'){ switchHwSocket('two','On'); sleep(15);}
+		if ($hwChargerTwoStatus == 'On'){ switchHwSocket('two','Off'); sleep(15);}
 		if ($hwChargerThreeStatus == 'Off'){ switchHwSocket('three','On');}
-	} elseif ($keepBMSalive == 'yes' && $hwChargerOneStatus == 'On' && $pvAvInputVoltage > $bmsMinimumVoltage && $pvAvInputVoltage < $bmsRestoreVoltage) {
+		
+	} elseif ($keepBMSalive == 'yes' && $hwChargerOneStatus == 'On' && $hwChargerThreeStatus == 'On' && $pvAvInputVoltage >= $bmsMinimumVoltage && $pvAvInputVoltage < $bmsRestoreVoltage) {
 		$bmsAwake = 1;
-	} elseif ($keepBMSalive == 'yes' && $hwChargerOneStatus == 'On' && $pvAvInputVoltage >= $bmsRestoreVoltage) {
+	} elseif ($keepBMSalive == 'yes' && $hwChargerOneStatus == 'On' && $hwChargerThreeStatus == 'On' && $pvAvInputVoltage >= $bmsRestoreVoltage) {
 		$bmsAwake = 0;
 	} else {
 		$bmsAwake = 0;
@@ -103,7 +104,8 @@
 // Print Battery Status		
 		echo ' -/- Batterij                 -\-'.PHP_EOL;
 		echo '  -- Batterij voltage          : '.$pvAvInputVoltage.' Volt'.PHP_EOL;
-		echo '  -- Batterij SOC              : '.$batterySOC.'%'.PHP_EOL;		
+		echo '  -- Batterij SOC              : '.$batterySOC.'%'.PHP_EOL;
+		echo '  -- Batterij State            : '.$batteryState.''.PHP_EOL;		
 		echo '  -- Opgeslagen energie        : '.$batteryAvailable.' kWh'.PHP_EOL;
 		if ($chargerUsage >= $chargerWattsIdle){
 		echo '  -- Oplaadtijd (resterend)    : '.$realChargeTime.' u(ren)'.PHP_EOL;
@@ -112,19 +114,9 @@
 		echo '  -- Ontlaadtijd (resterend)   : '.$realDischargeTime.' u(ren)'.PHP_EOL;			
 		}
 		echo ' '.PHP_EOL;
-
+		
 // Print Inverter Status
 		echo ' -/- EcoFlow Omvormers        -\-'.PHP_EOL;
-		if ($ecoflowOneStatus == 1) {
-		echo '  -- Omvormer 1                : Online'.PHP_EOL;
-		} else {
-		echo '  -- Omvormer 1                : Offline'.PHP_EOL;
-		}
-		if ($ecoflowTwoStatus == 1) {
-		echo '  -- Omvormer 2                : Online'.PHP_EOL;
-		} else {
-		echo '  -- Omvormer 2                : Offline'.PHP_EOL;
-		}
 		echo '  -- Omvormer 1 Temperatuur    : '.$invOneTemp.'˚C'.PHP_EOL;
 		echo '  -- Omvormer 2 Temperatuur    : '.$invTwoTemp.'˚C'.PHP_EOL;		
 		echo ' '.PHP_EOL;
@@ -159,18 +151,18 @@
 //                                                               //
 
 if ($controlSwitch == 'P1'){
-	if ($faseProtect == 0 && $bmsAwake == 0 && $batterySOC < 100 && $hwInvReturn == 0 && $hwSolarReturn < 0){
+	if ($faseProtect == 0 && $bmsAwake == 0 && $batterySOC < 100 && $hwInvReturn == 0 && $hwSolarReturn < $chargerOneUsage){
 		
 // Lader 1 AAN - Lader 2 & 3 UIT
-		if ($P1ChargerUsage >= $chargerTwoUsage && $P1ChargerUsage < $chargerOneUsage){		
+		if ($P1ChargerUsage >= $chargerTwoUsage && $P1ChargerUsage < $chargerOneUsage && $chargeOverride == 0){		
 			if ($debug == 'yes'){echo ' --           Lader 1 AAN            --'.PHP_EOL;}
 			if ($hwChargerOneStatus == 'Off') { switchHwSocket('one','On'); sleep(15);}
 			if ($hwChargerTwoStatus == 'On')  { switchHwSocket('two','Off'); sleep(15);}
-			if ($hwChargerThreeStatus == 'On'){ switchHwSocket('three','Off');}
+			if ($hwChargerThreeStatus == 'On' && $shortOverride == 0){ switchHwSocket('three','Off');}
 		}
 
 // Lader 1 & 3 AAN - Lader 2 UIT
-		if ($P1ChargerUsage >= $chargerOneTwoUsage && $P1ChargerUsage < $chargerTwoUsage){	
+		if ($P1ChargerUsage >= $chargerOneTwoUsage && $P1ChargerUsage < $chargerTwoUsage && $chargeOverride == 0){	
 			if ($debug == 'yes'){echo ' --          Lader 1 & 3 AAN         --'.PHP_EOL;}
 			if ($hwChargerOneStatus == 'Off')  { switchHwSocket('one','On'); sleep(15);}
 			if ($hwChargerTwoStatus == 'On')   { switchHwSocket('two','Off'); sleep(15);}
@@ -178,7 +170,7 @@ if ($controlSwitch == 'P1'){
 		}
 
 // Lader 1 & 2 AAN - Lader 3 UIT
-		if ($P1ChargerUsage >= $chargerTotalUsage && $P1ChargerUsage < $chargerOneTwoUsage){		
+		if ($P1ChargerUsage >= $chargerTotalUsage && $P1ChargerUsage < $chargerOneTwoUsage && $chargeOverride == 0){		
 			if ($debug == 'yes'){echo ' --          Lader 1 & 2 AAN         --'.PHP_EOL;}
 			if ($hwChargerOneStatus == 'Off') { switchHwSocket('one','On'); sleep(15);}
 			if ($hwChargerTwoStatus == 'Off') { switchHwSocket('two','On'); sleep(15);}
@@ -186,29 +178,38 @@ if ($controlSwitch == 'P1'){
 		}
 
 // Lader 1, 2, & 3 AAN
-		if ($P1ChargerUsage < $chargerTotalUsage){	
+		if ($P1ChargerUsage < $chargerTotalUsage && $chargeOverride == 0){	
 			if ($debug == 'yes'){echo ' --        Lader 1, 2, & 3 AAN       --'.PHP_EOL;}
 			if ($hwChargerOneStatus == 'Off')  { switchHwSocket('one','On'); sleep(15);}
 			if ($hwChargerTwoStatus == 'Off')  { switchHwSocket('two','On'); sleep(15);}
 			if ($hwChargerThreeStatus == 'Off'){ switchHwSocket('three','On');}
 		}
+		
+// Lader 2 AAN - Lader 1 & 3 UIT
+		if ($chargeOverride == 1){	
+			if ($debug == 'yes'){echo ' --           Lader 2 AAN            --'.PHP_EOL;}
+			if ($hwChargerTwoStatus == 'Off')  { switchHwSocket('two','On'); sleep(15);}
+			if ($hwChargerOneStatus == 'On')  { switchHwSocket('one','Off'); sleep(1);}
+			if ($hwChargerThreeStatus == 'On'){ switchHwSocket('three','Off');}
+		}
 	}
 
 // Laders 1, 2 en 3 UIT
-	if ($faseProtect == 0 && $bmsAwake == 0 && $shortOverride == 0){
+	if ($faseProtect == 0 && $bmsAwake == 0 && $chargeOverride == 0){
 
 		if ($P1ChargerUsage >= 0 || $hwInvReturn != 0 || $chargerUsage <= $chargerWattsIdle || $hwSolarReturn == 0){
 			
 			if ($debug == 'yes'){echo ' --        Laders 1, 2 en 3 UIT      --'.PHP_EOL;}
-			if ($hwChargerOneStatus == 'On')  { switchHwSocket('one','Off'); sleep(1);}						
+			if (($hwChargerOneStatus == 'On' && $shortOverride == 0) && ($chargerUsage <= $chargerWattsIdle || $hwSolarReturn >= $chargerOneUsage || $hwInvReturn != 0))  { switchHwSocket('one','Off'); sleep(1);}						
 			if ($hwChargerTwoStatus == 'On')  { switchHwSocket('two','Off'); sleep(1);}
-			if ($hwChargerThreeStatus == 'On'){ switchHwSocket('three','Off');}
+			if ($hwChargerThreeStatus == 'On' && $shortOverride == 0){ switchHwSocket('three','Off');}
 		}
 		
 	}
 		
 	if ($debug == 'yes'){
 		if ($shortOverride == 1) {echo ' --      (Short Override actief)     --'.PHP_EOL;}
+		if ($chargeOverride == 1) {echo ' --    (Batterij aan het aftoppen)   --'.PHP_EOL;}
 		if ($bmsAwake == 1){echo ' --        (BMS wakker maken)      --'.PHP_EOL;}
 	    if ($faseProtect == 1){echo ' --    (Fase bescherming actief)   --'.PHP_EOL;}
 		echo ' --         P1 Based Charging        --'.PHP_EOL;
@@ -236,8 +237,8 @@ if ($controlSwitch == 'Manual'){
 // Laders 1, 2 en 3 UIT
 	if (($hwChargerOneStatus == 'On' || $hwChargerTwoStatus == 'On' || $hwChargerThreeStatus == 'On') && ($chargerUsage <= $chargerWattsIdle || $hwInvReturn != 0)){
 		if ($debug == 'yes'){echo ' --        Laders 1, 2 en 3 UIT      --'.PHP_EOL;}
-		if ($hwChargerOneStatus == 'On'){ switchHwSocket('one','Off'); sleep(15);}						
-		if ($hwChargerTwoStatus == 'On'){ switchHwSocket('two','Off'); sleep(15);}
+		if ($hwChargerOneStatus == 'On'){ switchHwSocket('one','Off'); sleep(1);}						
+		if ($hwChargerTwoStatus == 'On'){ switchHwSocket('two','Off'); sleep(1);}
 		if ($hwChargerThreeStatus == 'On'){ switchHwSocket('three','Off');}	
 	}
 	
@@ -266,20 +267,6 @@ if ($controlSwitch == 'Off' || $controlSwitch == 'Stop'){
 		if ($hwChargerThreeStatus == 'On'){ switchHwSocket('three','Off');}
 	}
 }
-
-//															     //
-// **************************************************************//
-//        EcoFlow LiFePo4 12/12/20a Homebattery Charging         //
-//                 Calibrate Charge kWh values?                  //
-// **************************************************************//
-//                                                               //
-		
-	if (file_exists($batteryInputFile) && file_exists($batteryOutputFile)){
-		if(($batterySOC > 100 || $batterySOC >= $batteryVoltAlmostCharged) && ($chargerUsage >= 0 && $chargerUsage <= $chargerWattsIdle && $batteryInputkWh != $batteryInputCal)){
-		writeBattInputOutput(''.$batteryInputCal.'','Input');
-		writeBattInputOutput(''.$hwInvTotal.'','Output');
-		}
-	}
 	
 // Print Footer
 	if ($debug == 'yes'){
