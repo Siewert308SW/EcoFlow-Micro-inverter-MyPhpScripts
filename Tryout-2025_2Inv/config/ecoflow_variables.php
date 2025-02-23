@@ -79,7 +79,7 @@
 
 // Set bmsRestoreVoltage
 	$bmsRestoreVoltage      = ($bmsMinimumVoltage + 1.2);
-	$bmsRestoredVoltage     = ($bmsMinimumVoltage + 0.5);
+	$bmsRestoredVoltage     = ($bmsMinimumVoltage + 1.0);
 	
 // Get Inverter Temperature
 	$invOneTemp             = ($invOne['data']['20_1.llcTemp']) / 10;
@@ -102,7 +102,8 @@
 // Get Battery Input/Output Total Files
 	$batteryInputFile  		= ''.$ecoflowPath.'files/batteryInput.txt';
 	$batteryOutputFile      = ''.$ecoflowPath.'files/batteryOutput.txt';
-
+	$batteryStateFile       = ''.$ecoflowPath.'files/batteryState.txt';
+	
 	if (file_exists($batteryInputFile)) {
 	$batteryInputkWh        = file_get_contents(''.$batteryInputFile.'');
 	$batteryInputkWh        = round($batteryInputkWh, 2);
@@ -116,11 +117,17 @@
 	} else {
 	$batteryOutputkWh       = 0;
 	}
+
+	if (file_exists($batteryStateFile)) {
+	$batteryState           = file_get_contents(''.$batteryStateFile.'');
+	} else {
+	writeBattInputOutput('Standby','State');	
+	}
 	
 // Get/Set Battery Charge/Discharge/SOC values
 	$batteryCapacity        = round($batteryVolt * $batteryAh / 1000, 2);
-	$batteryVoltCharged     = round($batteryVolt + 1, 2);
-	$batteryVoltAlmostCharged= round($batteryVolt + 1.4, 2);
+	$batteryVoltCharged     = round($batteryVolt + 1.5, 2);
+	//$batteryVoltAlmostCharged= round($batteryVolt + 1.3, 2);
 	$batteryCharged         = round($hwChargersTotalInput - $batteryInputkWh,2);
 	$batteryDischarged      = round($hwInvTotal - $batteryOutputkWh,2);
 	$batteryAvailable       = round(($batteryCharged / 100 * $chargerEfficiency) - $batteryDischarged,2);
@@ -162,7 +169,12 @@
 	];
 
 	$baseLocalUrl = 'http://127.0.0.1:8080/json.htm?type=command&param=getdevices&rid=';
-	$urlsLocal    = ['controlSwitch' => $baseLocalUrl . $controlSwitchIDX,'baseloadSwitch' => $baseLocalUrl . $baseloadSwitchIDX];
+	$urlsLocal    = ['controlSwitch' => $baseLocalUrl . $controlSwitchIDX,
+	'baseloadSwitch'   => $baseLocalUrl . $baseloadSwitchIDX
+	//'sunTodayIDX'      => $baseLocalUrl . $sunTodayIDX,
+	//'sunTomorrowIDX'   => $baseLocalUrl . $sunTomorrowIDX,
+	//'solarRadiationIDX'=> $baseLocalUrl . $solarRadiationIDX
+	];
 	
 // Get Domoticz devices Usage
 	$heaterWatts_data 	  = json_decode(file_get_contents($urls['heaterWcdIDX']), true);
@@ -189,6 +201,15 @@
 	$baseload_data        = json_decode(file_get_contents($urlsLocal['baseloadSwitch']), true);
 	$baseloadSwitch       = $baseload_data['result'][0]['Data'];
 
+	//$sunToday_data        = json_decode(file_get_contents($urlsLocal['sunTodayIDX']), true);
+	//$sunToday 	          = intval($sunToday_data['result'][0]['Data'] ?? 0);
+
+	//$sunTomorrow_data     = json_decode(file_get_contents($urlsLocal['sunTomorrowIDX']), true);
+	//$sunTomorrow 	      = intval($sunTomorrow_data['result'][0]['Data'] ?? 0);
+
+	//$solarRadiation_data  = json_decode(file_get_contents($urlsLocal['solarRadiationIDX']), true);
+	//$solarRadiation 	  = intval($solarRadiation_data['result'][0]['Data'] ?? 0);
+	
 // Calculate remaining charge time
 	if ($hwChargerOneStatus == 'On' || $hwChargerTwoStatus == 'On' || $hwChargerThreeStatus == 'On'){
 		if ($batterySOC <= 100){	
@@ -209,5 +230,29 @@
 	}
 	
 	$realChargeTime    = convertTime($chargeTimeRemaining);
-	$realDischargeTime = convertTime($disChargeTimeRemaining);	
+	$realDischargeTime = convertTime($disChargeTimeRemaining);
+	
+// Calibrate Charge kWh values?		
+	if (file_exists($batteryInputFile) && file_exists($batteryOutputFile) && file_exists($batteryStateFile)){
+		if($batterySOC > 100 && $pvAvOneInputVoltage >= $batteryVoltCharged && $chargerUsage == 0 && $batteryInputkWh != $batteryInputCal){
+		writeBattInputOutput(''.$batteryInputCal.'','Input');
+		sleep(1);
+		writeBattInputOutput(''.$hwInvTotal.'','Output');
+		sleep(1);
+	    writeBattInputOutput('Ready','State');
+		}
+		
+		if($batterySOC <= $batteryMinimum && $batteryState != 'Standby'){
+	    writeBattInputOutput('Standby','State');
+		}
+	}
+
+// Charge Override
+	if ($pvAvInputVoltage >= $batteryVoltCharged && $chargerUsage > $chargerWattsIdle) {
+	$chargeOverride = 1;
+	} elseif ($pvAvInputVoltage >= $batteryVoltCharged && $chargerUsage <= $chargerWattsIdle) {
+	$chargeOverride = 0;
+	} elseif ($pvAvInputVoltage < $batteryVoltCharged) {
+	$chargeOverride = 0;	
+	}
 ?>
