@@ -32,12 +32,15 @@
 	$hwInvOneReturn         = getHwData($hwEcoFlowOneIP);
 	$hwInvTwoReturn         = getHwData($hwEcoFlowTwoIP);
 	$hwInvReturn            = ($hwInvOneReturn + $hwInvTwoReturn);
+
 	$hwChargerOneUsage      = getHwData($hwChargerOneIP);
 	$hwChargerTwoUsage      = getHwData($hwChargerTwoIP);
 	$hwChargerThreeUsage    = getHwData($hwChargerThreeIP);
+	
 	$hwChargerOneStatus     = getHwStatus($hwChargerOneIP);
 	$hwChargerTwoStatus     = getHwStatus($hwChargerTwoIP);
 	$hwChargerThreeStatus   = getHwStatus($hwChargerThreeIP);
+	
 	$hwInvOneStatus         = getHwStatus($hwEcoFlowOneIP);
 	$hwInvTwoStatus         = getHwStatus($hwEcoFlowTwoIP);
 	
@@ -47,6 +50,7 @@
 	$hwChargerOneTotal      = getHwTotalInputData($hwChargerOneIP);
 	$hwChargerTwoTotal      = getHwTotalInputData($hwChargerTwoIP);
 	$hwChargerThreeTotal    = getHwTotalInputData($hwChargerThreeIP);
+	
 	$hwChargersTotalInput   = ($hwChargerOneTotal + $hwChargerTwoTotal + $hwChargerThreeTotal);
 	
 // Get battery Voltage via inverter
@@ -79,7 +83,7 @@
 
 // Set bmsRestoreVoltage
 	$bmsRestoreVoltage      = ($bmsMinimumVoltage + 1.2);
-	$bmsRestoredVoltage     = ($bmsMinimumVoltage + 1.0);
+	$bmsRestoredVoltage     = ($bmsMinimumVoltage + 1.1);
 	
 // Get Inverter Temperature
 	$invOneTemp             = ($invOne['data']['20_1.llcTemp']) / 10;
@@ -102,7 +106,7 @@
 // Get Battery Input/Output Total Files
 	$batteryInputFile  		= ''.$ecoflowPath.'files/batteryInput.txt';
 	$batteryOutputFile      = ''.$ecoflowPath.'files/batteryOutput.txt';
-	$batteryStateFile       = ''.$ecoflowPath.'files/batteryState.txt';
+	$chargerStandbyFile     = ''.$ecoflowPath.'files/chargerStandby.txt';
 	
 	if (file_exists($batteryInputFile)) {
 	$batteryInputkWh        = file_get_contents(''.$batteryInputFile.'');
@@ -118,16 +122,16 @@
 	$batteryOutputkWh       = 0;
 	}
 
-	if (file_exists($batteryStateFile)) {
-	$batteryState           = file_get_contents(''.$batteryStateFile.'');
+	if (file_exists($chargerStandbyFile)) {
+	$chargerStandby         = file_get_contents(''.$chargerStandbyFile.'');
 	} else {
-	writeBattInputOutput('Standby','State');	
+	writeFile('On','Standby');	
 	}
 	
 // Get/Set Battery Charge/Discharge/SOC values
 	$batteryCapacity        = round($batteryVolt * $batteryAh / 1000, 2);
-	$batteryVoltCharged     = round($batteryVolt + 1.5, 2);
-	//$batteryVoltAlmostCharged= round($batteryVolt + 1.3, 2);
+	$battVoltAlmostCharged  = round($batteryVolt + 0.8, 2);
+	$battVoltCharged        = round($batteryVolt + 1.3, 2);
 	$batteryCharged         = round($hwChargersTotalInput - $batteryInputkWh,2);
 	$batteryDischarged      = round($hwInvTotal - $batteryOutputkWh,2);
 	$batteryAvailable       = round(($batteryCharged / 100 * $chargerEfficiency) - $batteryDischarged,2);
@@ -135,7 +139,7 @@
 	$batterySOC		        = round($batteryAvailable / $batteryCapacity * 100, 1);
 	$hwInvReturnABS         = round(abs(($hwInvReturn) / 1000), 2);
 	$batteryInputCal        = round(($hwChargersTotalInput) - $batteryCapacity / $chargerEfficiency * 100,2);
-	$batteryOutputCal       = round($hwInvTotal - $batteryCapacity,2);
+	$batteryOutputCal       = round($batteryOutputkWh - $batteryAvailable,2);
 
 // php.ini
 	date_default_timezone_set(''.$timezone.'');
@@ -144,18 +148,6 @@
 	$timeNow = date('H:i');
 	$dateNow = date('Y-m-d H:i:s');
 	$dateTime = new DateTime(''.$dateNow.'', new DateTimeZone(''.$timezone.''));
-
-// Check DSt time
-	$isDST = $dateTime->format("I");
-	if ($isDST == '1'){
-	$gmt = '1';
-	} else {
-	$gmt = '0';
-	}
-
-// Get Sunrise/Sunset
-	$sunrise              = (date_sunrise(time(),SUNFUNCS_RET_STRING,$latitude,$longitude,$zenitLat,$gmt));
-	$sunset               = (date_sunset(time(),SUNFUNCS_RET_STRING,$latitude,$longitude,$zenitLong,$gmt));
 	
 // URLs
 	$baseUrl = 'http://'.$domoticzIP.'/json.htm?type=command&param=getdevices&rid=';
@@ -164,17 +156,11 @@
 	'quookerWcdIDX'   => $baseUrl . $quookerWcdIDX,
 	'aanrecht1WcdIDX' => $baseUrl . $aanrecht1WcdIDX,
 	'aanrecht2WcdIDX' => $baseUrl . $aanrecht2WcdIDX,
-	'natalyaWcdIDX'   => $baseUrl . $natalyaWcdIDX,
-	'afzuigkapWcdIDX' => $baseUrl . $afzuigkapWcdIDX
+	'natalyaWcdIDX'   => $baseUrl . $natalyaWcdIDX
 	];
 
 	$baseLocalUrl = 'http://127.0.0.1:8080/json.htm?type=command&param=getdevices&rid=';
-	$urlsLocal    = ['controlSwitch' => $baseLocalUrl . $controlSwitchIDX,
-	'baseloadSwitch'   => $baseLocalUrl . $baseloadSwitchIDX
-	//'sunTodayIDX'      => $baseLocalUrl . $sunTodayIDX,
-	//'sunTomorrowIDX'   => $baseLocalUrl . $sunTomorrowIDX,
-	//'solarRadiationIDX'=> $baseLocalUrl . $solarRadiationIDX
-	];
+	$urlsLocal    = ['controlSwitch' => $baseLocalUrl . $controlSwitchIDX];
 	
 // Get Domoticz devices Usage
 	$heaterWatts_data 	  = json_decode(file_get_contents($urls['heaterWcdIDX']), true);
@@ -191,24 +177,9 @@
 
 	$natalyaWatts_data 	  = json_decode(file_get_contents($urls['natalyaWcdIDX']), true);
 	$natalyaWatts 	  	  = intval($natalyaWatts_data['result'][0]['Data'] ?? 0);
-
-	$afzuigkapWatts_data  = json_decode(file_get_contents($urls['afzuigkapWcdIDX']), true);
-	$afzuigkapWatts 	  = intval($afzuigkapWatts_data['result'][0]['Data'] ?? 0);
 	
 	$control_data         = json_decode(file_get_contents($urlsLocal['controlSwitch']), true);
 	$controlSwitch        = $control_data['result'][0]['Data'];
-	
-	$baseload_data        = json_decode(file_get_contents($urlsLocal['baseloadSwitch']), true);
-	$baseloadSwitch       = $baseload_data['result'][0]['Data'];
-
-	//$sunToday_data        = json_decode(file_get_contents($urlsLocal['sunTodayIDX']), true);
-	//$sunToday 	          = intval($sunToday_data['result'][0]['Data'] ?? 0);
-
-	//$sunTomorrow_data     = json_decode(file_get_contents($urlsLocal['sunTomorrowIDX']), true);
-	//$sunTomorrow 	      = intval($sunTomorrow_data['result'][0]['Data'] ?? 0);
-
-	//$solarRadiation_data  = json_decode(file_get_contents($urlsLocal['solarRadiationIDX']), true);
-	//$solarRadiation 	  = intval($solarRadiation_data['result'][0]['Data'] ?? 0);
 	
 // Calculate remaining charge time
 	if ($hwChargerOneStatus == 'On' || $hwChargerTwoStatus == 'On' || $hwChargerThreeStatus == 'On'){
@@ -233,26 +204,101 @@
 	$realDischargeTime = convertTime($disChargeTimeRemaining);
 	
 // Calibrate Charge kWh values?		
-	if (file_exists($batteryInputFile) && file_exists($batteryOutputFile) && file_exists($batteryStateFile)){
-		if($batterySOC > 100 && $pvAvOneInputVoltage >= $batteryVoltCharged && $chargerUsage == 0 && $batteryInputkWh != $batteryInputCal){
+	if (file_exists($batteryInputFile) && file_exists($batteryOutputFile)){
+		
+		if(($batterySOC > 100 || $pvAvOneInputVoltage >= $battVoltCharged) && ($chargerUsage == 0 && $batteryInputkWh != $batteryInputCal)){
 		writeBattInputOutput(''.$batteryInputCal.'','Input');
 		sleep(1);
 		writeBattInputOutput(''.$hwInvTotal.'','Output');
-		sleep(1);
-	    writeBattInputOutput('Ready','State');
 		}
-		
-		if($batterySOC <= $batteryMinimum && $batteryState != 'Standby'){
-	    writeBattInputOutput('Standby','State');
+
+		if($batterySOC > $batteryMinimum && $pvAvOneInputVoltage <= ($bmsMinimumVoltage + 0.5) && $chargerUsage == 0 && $hwInvReturn == 0 && $batteryOutputkWh != $batteryOutputCal){
+	    writeBattInputOutput(''.$batteryOutputCal.'','Output');
 		}
 	}
 
-// Charge Override
-	if ($pvAvInputVoltage >= $batteryVoltCharged && $chargerUsage > $chargerWattsIdle) {
+//															     //
+// **************************************************************//
+//        EcoFlow LiFePo4 12/12/20a Homebattery Charging         //
+//                  Fase powerusage protection                   //
+// **************************************************************//
+//                                                               //
+
+	if ($hwP1Fase >= $maxFaseWatts){
+		if ($hwChargerOneStatus == 'On'){ switchHwSocket('one','Off'); sleep(1);}
+		if ($hwChargerTwoStatus == 'On'){ switchHwSocket('two','Off'); sleep(1);}
+		if ($hwChargerThreeStatus == 'On'){ switchHwSocket('three','Off'); sleep(1);}
+		$faseProtect = 1;
+	} else {
+		//$maxFaseWatts = ($maxFaseWatts - $chargerTotalUsage);
+		if ($hwP1Fase <= $maxFaseWatts){
+		$faseProtect = 0;
+		} else {
+		$faseProtect = 1;
+		}
+	}
+	
+//															     //
+// **************************************************************//
+//        EcoFlow LiFePo4 12/12/20a Homebattery Charging         //
+//                       Keep BMS Awake                          //
+// **************************************************************//
+//                                                               //  
+
+	if ($keepBMSalive == 'yes' && $hwChargerOneStatus == 'Off' && $hwChargerThreeStatus == 'Off' && $pvAvInputVoltage > 0 && $pvAvInputVoltage <= $bmsMinimumVoltage && $hwInvReturn == 0) {
+		$bmsAwake = 1;
+		if ($hwChargerOneStatus == 'Off'){ switchHwSocket('one','On'); sleep(5);}
+		if ($hwChargerTwoStatus == 'On'){ switchHwSocket('two','Off'); sleep(5);}
+		if ($hwChargerThreeStatus == 'Off'){ switchHwSocket('three','On'); sleep(5);}
+		
+	} elseif ($keepBMSalive == 'yes' && $hwChargerOneStatus == 'On' && $hwChargerThreeStatus == 'On' && $pvAvInputVoltage > $bmsMinimumVoltage && $pvAvInputVoltage < $bmsRestoreVoltage) {
+		$bmsAwake = 1;
+	} elseif ($keepBMSalive == 'yes' && $hwChargerOneStatus == 'On' && $hwChargerThreeStatus == 'On' && $pvAvInputVoltage >= $bmsRestoreVoltage) {
+		$bmsAwake = 0;
+	} else {
+		$bmsAwake = 0;
+	}
+
+//															     //
+// **************************************************************//
+//        EcoFlow LiFePo4 12/12/20a Homebattery Charging         //
+//                       Charge Override                         //
+// **************************************************************//
+//                                                               //
+
+	if ($pvAvInputVoltage >= $battVoltAlmostCharged && $pvAvInputVoltage <= $battVoltCharged && $chargerUsage > $chargerWattsIdle) {
 	$chargeOverride = 1;
-	} elseif ($pvAvInputVoltage >= $batteryVoltCharged && $chargerUsage <= $chargerWattsIdle) {
+	} elseif ($pvAvInputVoltage >= $battVoltCharged && $chargerUsage > $chargerWattsIdle) {
+	$chargeOverride = 2;
+	} elseif ($pvAvInputVoltage >= $battVoltCharged && $chargerUsage <= $chargerWattsIdle) {
 	$chargeOverride = 0;
-	} elseif ($pvAvInputVoltage < $batteryVoltCharged) {
+	} elseif ($pvAvInputVoltage < $battVoltCharged) {
 	$chargeOverride = 0;	
 	}
+
+/*
+	if ($pvAvInputVoltage >= $battVoltAlmostCharged && $chargerUsage > $chargerWattsIdle) {
+	$chargeOverride = 1;
+	} elseif ($pvAvInputVoltage >= $battVoltCharged && $chargerUsage <= $chargerWattsIdle) {
+	$chargeOverride = 2;
+	} elseif ($pvAvInputVoltage < $battVoltCharged) {
+	$chargeOverride = 0;	
+	}
+*/	
+//															     //
+// **************************************************************//
+//        EcoFlow LiFePo4 12/12/20a Homebattery Charging         //
+//                       Short Override                          //
+// **************************************************************//
+//                                                               //
+
+// ShortOverride (Voorkom flip/flops door devices die maar even een kort hoge verbruik piek hebben)
+	if ($heaterWatts <= 50 && $quookerWatts <= 50 && $aanrecht1Watts <= 100 && $aanrecht2Watts <= 100 && $natalyaWatts <= 500){	
+	$shortOverride = 0;
+	} elseif (($heaterWatts > 50 || $quookerWatts > 50 || $aanrecht1Watts > 100 || $aanrecht2Watts > 100 || $natalyaWatts > 500) && ($hwSolarReturn <= $chargerTotalUsage || $hwInvReturn == 0)) {
+	$shortOverride = 1;
+	} elseif (($heaterWatts > 50 || $quookerWatts > 50 || $aanrecht1Watts > 100 || $aanrecht2Watts > 100 || $natalyaWatts > 500) && ($hwSolarReturn > $chargerTotalUsage || $hwInvReturn != 0)) {
+	$shortOverride = 0;
+	}
+
 ?>
