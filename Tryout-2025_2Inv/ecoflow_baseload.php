@@ -29,32 +29,7 @@
 // Schedule into infinity
 	} elseif ($runInfinity == 'yes') {
 		$schedule = 1;
-
-// Schedule day
-	} elseif ($runInfinity == 'day' && date('H:i') >= ( ''.$sunrise.'' ) && date('H:i') < ( ''.$sunset.'' )) {
-		$schedule = 1;
 		
-// Schedule night
-	} elseif ($runInfinity == 'night' && date('H:i') >= ( '00:00' ) && date('H:i') < ( ''.$sunrise.'' )) {
-		$schedule = 1;
-
-// Schedule when dark
-	} elseif ($runInfinity == 'dark' && $hwSolarReturn == 0) {
-		$schedule = 1;
-
-// Schedule auto
-	} elseif ($runInfinity == 'auto' && $isDST == '0' && date('H:i') >= ( '00:00' ) && date('H:i') < ( ''.$sunrise.'' )) {
-		$schedule = 1;
-
-	} elseif ($runInfinity == 'auto' && $isDST == '0' && date('H:i') >= ( ''.$sunrise.'' ) && date('H:i') < ( ''.$sunset.'' ) && $batteryState == 'Ready') {
-		$schedule = 1;
-		
-	} elseif ($runInfinity == 'auto' && $isDST == '0' && date('H:i') >= ( ''.$sunset.'' ) && date('H:i') < ( '23:59' ) && $batteryState == 'Ready') {
-		$schedule = 1;
-		
-	} elseif ($runInfinity == 'auto' && $isDST == '1' && $batteryState == 'Ready') {
-		$schedule = 1;
-	
 	} else {
 		$schedule = 0;	
 	}
@@ -115,8 +90,9 @@
 
 // Limit baseload when inverter is getting to hot
 	if ($invTemp >= $ecoflowMaxInvTemp) {
-		$newBaseload    = ($ecoflowMaxOutput) / 2;
-		$newInvBaseload = ($ecoflowMaxOutput / 2) * 10;
+		$newBaseload    = ($newBaseload) / 1.5;
+		$newInvBaseload = ($newInvBaseload / 1.5) * 10;
+
 	}
 
 // Set baseload to null when battery empty
@@ -186,8 +162,7 @@
 // Print Battery Status
 		echo ' -/- Batterij                 -\-'.PHP_EOL;
 		echo '  -- Batterij Voltage          : '.$pvAvInputVoltage.' Volt'.PHP_EOL;
-		echo '  -- Batterij SOC              : '.$batterySOC.'%'.PHP_EOL;
-		echo '  -- Batterij State            : '.$batteryState.''.PHP_EOL;		
+		echo '  -- Batterij SOC              : '.$batterySOC.'%'.PHP_EOL;		
 		echo '  -- Opgeslagen energie        : '.$batteryAvailable.' kWh'.PHP_EOL;
 		if ($chargerUsage >= $chargerWattsIdle){
 		echo '  -- Oplaadtijd (resterend)    : '.$realChargeTime.' u(ren)'.PHP_EOL;
@@ -207,17 +182,22 @@
 		echo '  -- Schakeltijd               : true'.PHP_EOL;
 		} else {
 		echo '  -- Schakeltijd               : false'.PHP_EOL;
-		}		
+		}	
 		echo ' '.PHP_EOL;
 		
 // Print Inverter Status
 		echo ' -/- EcoFlow Omvormers        -\-'.PHP_EOL;
-		echo '  -- Huidige Baseload Inv 1    : '.$currentOneBaseload.' Watt'.PHP_EOL;
-		echo '  -- Huidige Baseload Inv 2    : '.$currentTwoBaseload.' Watt'.PHP_EOL;
 		echo '  -- Omvormer 1 Temperatuur    : '.$invOneTemp.'˚C'.PHP_EOL;
 		echo '  -- Omvormer 2 Temperatuur    : '.$invTwoTemp.'˚C'.PHP_EOL;		
 		echo ' '.PHP_EOL;
 
+// Print Various
+		echo ' -/- Various                  -\-'.PHP_EOL;
+		echo '  -- Charge Control Switch     : '.$controlSwitch.''.PHP_EOL;
+		echo '  -- L'.$fase.' bescherming            : '.$faseProtection.''.PHP_EOL;
+		echo '  -- Houd BMS wakker           : '.$keepBMSalive.''.PHP_EOL;
+		echo ' '.PHP_EOL;
+		
 // Print Energie Status
 		echo ' -/- Energie                  -\-'.PHP_EOL;
 		echo '  -- P1-Meter                  : '.$hwP1Usage.' Watt'.PHP_EOL;
@@ -242,28 +222,11 @@
 		if ($debug == 'yes'){
 		echo '  -- Baseload update           : true'.PHP_EOL;
 		}
-	
-		if ($newBaseload < 400) {
-		$invBaseload = ($newInvBaseload);
-		$ecoflow->setDeviceFunction($ecoflowOneSerialNumber, 'WN511_SET_PERMANENT_WATTS_PACK', ['permanent_watts' => $invBaseload]);	
 		
-			if ($currentTwoBaseload != 0) {
-			$ecoflow->setDeviceFunction($ecoflowTwoSerialNumber, 'WN511_SET_PERMANENT_WATTS_PACK', ['permanent_watts' => 0]);			
-			}
-			
-		} elseif ($newBaseload >= 400) {
 			$invBaseload = ($newInvBaseload) / 2;
 			$ecoflow->setDeviceFunction($ecoflowOneSerialNumber, 'WN511_SET_PERMANENT_WATTS_PACK', ['permanent_watts' => $invBaseload]);
 			sleep(2);
-			if ($invBaseload > $ecoflowMinOutput) {
 			$ecoflow->setDeviceFunction($ecoflowTwoSerialNumber, 'WN511_SET_PERMANENT_WATTS_PACK', ['permanent_watts' => $invBaseload]);
-			
-			} elseif ($invBaseload <= $ecoflowMinOutput) {
-				if ($currentTwoBaseload != 0) {
-				$ecoflow->setDeviceFunction($ecoflowTwoSerialNumber, 'WN511_SET_PERMANENT_WATTS_PACK', ['permanent_watts' => 0]);			
-				}				
-			}
-		}
 		
 	} else {
 		if ($debug == 'yes'){
