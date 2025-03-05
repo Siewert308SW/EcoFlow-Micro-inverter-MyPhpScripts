@@ -87,10 +87,10 @@
 		global $hwEcoFlowTwoIP;
 		
 		$socket = curl_init();
-		if ($energySocket == 'two') {
-		curl_setopt($socket, CURLOPT_URL, 'http://'.$hwChargerTwoIP.'/api/v1/state');			
-		} elseif ($energySocket == 'one') {
-		curl_setopt($socket, CURLOPT_URL, 'http://'.$hwChargerOneIP.'/api/v1/state');
+		if ($energySocket == 'one') {
+		curl_setopt($socket, CURLOPT_URL, 'http://'.$hwChargerOneIP.'/api/v1/state');			
+		} elseif ($energySocket == 'two') {
+		curl_setopt($socket, CURLOPT_URL, 'http://'.$hwChargerTwoIP.'/api/v1/state');
 		} elseif ($energySocket == 'three') {
 		curl_setopt($socket, CURLOPT_URL, 'http://'.$hwChargerThreeIP.'/api/v1/state');
 		} elseif ($energySocket == 'invOne') {
@@ -206,8 +206,25 @@
 		$filePath = ''.$ecoflowPath.'files/batteryInput.txt';
 		} elseif ($file == 'Output'){
 		$filePath = ''.$ecoflowPath.'files/batteryOutput.txt';
-		} elseif ($file == 'State'){
-		$filePath = ''.$ecoflowPath.'files/batteryState.txt';
+		} else {
+		die("Unable to write file!");
+		}
+		
+		$file = fopen($filePath, "w");
+		if ($file === false) {
+			die("Unable to open file!");
+		}
+		fwrite($file, $value);
+		fclose($file);
+	}
+
+// Function Write File
+	function writeFile($value,$file)
+	{
+		global $ecoflowPath;
+
+		if ($file == 'Standby'){
+		$filePath = ''.$ecoflowPath.'files/chargerStandby.txt';
 		} else {
 		die("Unable to write file!");
 		}
