@@ -130,8 +130,8 @@
 	
 // Get/Set Battery Charge/Discharge/SOC values
 	$batteryCapacity        = round($batteryVolt * $batteryAh / 1000, 2);
-	$battVoltAlmostCharged  = round($batteryVolt + 0.8, 2);
-	$battVoltCharged        = round($batteryVolt + 1.3, 2);
+	$battVoltAlmostCharged  = round($batteryVolt + 0.9, 2);
+	$battVoltCharged        = round($batteryVolt + 1.4, 2);
 	$batteryCharged         = round($hwChargersTotalInput - $batteryInputkWh,2);
 	$batteryDischarged      = round($hwInvTotal - $batteryOutputkWh,2);
 	$batteryAvailable       = round(($batteryCharged / 100 * $chargerEfficiency) - $batteryDischarged,2);
