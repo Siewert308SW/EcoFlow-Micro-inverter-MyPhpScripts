@@ -18,13 +18,13 @@
 // Omvormer variables
 	$ecoflowMaxOutput	    = 1150;								 // Maximale teruglevering (Watts) wat de omvormer kan/mag leveren. 
 	$ecoflowMinOutput	    = 100;								 // Minimale teruglevering (Watts) Onder dit getal (Watt) zal de omvormer niet terugleveren. 
-	$ecoflowOutputOffSet    = 5;								 // Trek deze value (watts) af van de nieuwe baseload, Deze value wordt alsnog van het net wordt getrokken om teruglevering te voorkomen
+	$ecoflowOutputOffSet    = 20;								 // Trek deze value (watts) af van de nieuwe baseload, Deze value wordt alsnog van het net wordt getrokken om teruglevering te voorkomen
 	$ecoflowMaxInvTemp      = 65;								 // Maximale interne temperatuur, daarboven stopt de omvormer met terugleveren 
 
 // Batterij variables
 	$batteryVolt		    = 25.6;								 // Voltage van de batterij
 	$batteryAh              = 300;                               // Totale Ah van alle batterijen
-	$chargerEfficiency      = 79.3;                              // Lader laad efficientie
+	$chargerEfficiency      = 79.0;                              // Lader laad efficientie
 	$batteryMinimum		    = 10;                                // Minimale procenten die in de batterij moeten blijven
 	
 // Homewizard variables
@@ -38,7 +38,7 @@
 	
 // Lader variables
 	$chargerOneWatts	    = 350;								 // Verbruik van Lader 1 (Watt)
-	$chargerTwoWatts	    = 650;								 // Verbruik van Lader 2 (Watt)
+	$chargerTwoWatts	    = 600;								 // Verbruik van Lader 2 (Watt)
 	$chargerThreeWatts      = 350;								 // Verbruik van Lader 3 (Watt)
 	$chargerWattsIdle	    =  25;								 // Standby Watts van alle laders wanneer batterijen vol zijn
 
