@@ -43,6 +43,8 @@
 	
 	$hwInvOneStatus         = getHwStatus($hwEcoFlowOneIP);
 	$hwInvTwoStatus         = getHwStatus($hwEcoFlowTwoIP);
+
+	$hwInvFanStatus         = getHwStatus($hwEcoFlowFanIP);
 	
 	$hwInvOneTotal          = getHwTotalOutputData($hwEcoFlowOneIP);
 	$hwInvTwoTotal          = getHwTotalOutputData($hwEcoFlowTwoIP);
@@ -102,6 +104,7 @@
 	$chargerOneTwoUsage  	= -abs($chargerOneWatts + $chargerTwoWatts);
 	$chargerThreeUsage  	= -abs($chargerThreeWatts);
 	$chargerTotalUsage      = ($chargerOneUsage + $chargerTwoUsage + $chargerThreeUsage);
+	$chargerTotalUsageABS   = abs($chargerOneUsage + $chargerTwoUsage + $chargerThreeUsage);
 	
 // Get Battery Input/Output Total Files
 	$batteryInputFile  		= ''.$ecoflowPath.'files/batteryInput.txt';
@@ -125,13 +128,13 @@
 	if (file_exists($chargerStandbyFile)) {
 	$chargerStandby         = file_get_contents(''.$chargerStandbyFile.'');
 	} else {
-	writeFile('On','Standby');	
+	writeFile('Off','Standby');	
 	}
 	
 // Get/Set Battery Charge/Discharge/SOC values
 	$batteryCapacity        = round($batteryVolt * $batteryAh / 1000, 2);
-	$battVoltAlmostCharged  = round($batteryVolt + 0.9, 2);
-	$battVoltCharged        = round($batteryVolt + 1.4, 2);
+	$battVoltAlmostCharged  = round($batteryVolt + 1.0, 2);
+	$battVoltCharged        = round($batteryVolt + 1.3, 2);
 	$batteryCharged         = round($hwChargersTotalInput - $batteryInputkWh,2);
 	$batteryDischarged      = round($hwInvTotal - $batteryOutputkWh,2);
 	$batteryAvailable       = round(($batteryCharged / 100 * $chargerEfficiency) - $batteryDischarged,2);
@@ -207,16 +210,22 @@
 	if (file_exists($batteryInputFile) && file_exists($batteryOutputFile)){
 		
 		if(($batterySOC > 100 || $pvAvOneInputVoltage >= $battVoltCharged) && ($chargerUsage == 0 && $batteryInputkWh != $batteryInputCal)){
-		writeBattInputOutput(''.$batteryInputCal.'','Input');
+			writeBattInputOutput(''.$batteryInputCal.'','Input');
 		sleep(1);
-		writeBattInputOutput(''.$hwInvTotal.'','Output');
+			writeBattInputOutput(''.$hwInvTotal.'','Output');
+		sleep(1);
+			writeFile('Off','Standby');	
 		}
 
 		if($batterySOC > $batteryMinimum && $pvAvOneInputVoltage <= ($bmsMinimumVoltage + 0.5) && $chargerUsage == 0 && $hwInvReturn == 0 && $batteryOutputkWh != $batteryOutputCal){
-	    writeBattInputOutput(''.$batteryOutputCal.'','Output');
+			writeBattInputOutput(''.$batteryOutputCal.'','Output');
 		}
 	}
 
+// Chargers Standby
+	if(($batterySOC <= 90 && $chargerStandby == 'Off')){
+		writeFile('On','Standby');	
+	}
 //															     //
 // **************************************************************//
 //        EcoFlow LiFePo4 12/12/20a Homebattery Charging         //
@@ -224,17 +233,18 @@
 // **************************************************************//
 //                                                               //
 
-	if ($hwP1Fase >= $maxFaseWatts){
+	if ($hwP1Fase >= $maxFaseWatts || $heaterWatts > 1500){
 		if ($hwChargerOneStatus == 'On'){ switchHwSocket('one','Off'); sleep(1);}
 		if ($hwChargerTwoStatus == 'On'){ switchHwSocket('two','Off'); sleep(1);}
 		if ($hwChargerThreeStatus == 'On'){ switchHwSocket('three','Off'); sleep(1);}
 		$faseProtect = 1;
+	
 	} else {
-		//$maxFaseWatts = ($maxFaseWatts - $chargerTotalUsage);
-		if ($hwP1Fase <= $maxFaseWatts){
+		
+		if ($hwP1Fase <= $maxFaseWatts && $heaterWatts < 1500){
 		$faseProtect = 0;
 		} else {
-		$faseProtect = 1;
+		$faseProtect = 0;
 		}
 	}
 	
@@ -270,29 +280,12 @@
 	$chargeOverride = 1;
 	} elseif ($pvAvInputVoltage >= $battVoltCharged && $chargerUsage <= $chargerWattsIdle) {
 	$chargeOverride = 0;
-	} elseif ($pvAvInputVoltage < $battVoltCharged) {
-	$chargeOverride = 0;	
+	} elseif ($pvAvInputVoltage < $battVoltCharged && $chargerUsage <= $chargerWattsIdle) {
+	$chargeOverride = 0;
+	} elseif ($pvAvInputVoltage < $battVoltCharged && $chargerUsage > $chargerWattsIdle) {
+	$chargeOverride = 0;
 	}
 	
-	//if ($pvAvInputVoltage >= $battVoltAlmostCharged && $pvAvInputVoltage <= $battVoltCharged && $chargerUsage > $chargerWattsIdle) {
-	//$chargeOverride = 1;
-	//} elseif ($pvAvInputVoltage >= $battVoltCharged && $chargerUsage > $chargerWattsIdle) {
-	//$chargeOverride = 1;
-	//} elseif ($pvAvInputVoltage >= $battVoltCharged && $chargerUsage <= $chargerWattsIdle) {
-	//$chargeOverride = 0;
-	//} elseif ($pvAvInputVoltage < $battVoltCharged) {
-	//$chargeOverride = 0;	
-	//}
-
-/*
-	if ($pvAvInputVoltage >= $battVoltAlmostCharged && $chargerUsage > $chargerWattsIdle) {
-	$chargeOverride = 1;
-	} elseif ($pvAvInputVoltage >= $battVoltCharged && $chargerUsage <= $chargerWattsIdle) {
-	$chargeOverride = 2;
-	} elseif ($pvAvInputVoltage < $battVoltCharged) {
-	$chargeOverride = 0;	
-	}
-*/	
 //															     //
 // **************************************************************//
 //        EcoFlow LiFePo4 12/12/20a Homebattery Charging         //
@@ -301,11 +294,11 @@
 //                                                               //
 
 // ShortOverride (Voorkom flip/flops door devices die maar even een kort hoge verbruik piek hebben)
-	if ($heaterWatts <= 50 && $quookerWatts <= 50 && $aanrecht1Watts <= 100 && $aanrecht2Watts <= 100 && $natalyaWatts <= 500){	
+	if ($heaterWatts <= 50 && $quookerWatts <= 50 && $aanrecht1Watts <= 25 && $aanrecht2Watts <= 25 && $natalyaWatts <= 500){	
 	$shortOverride = 0;
-	} elseif (($heaterWatts > 50 || $quookerWatts > 50 || $aanrecht1Watts > 100 || $aanrecht2Watts > 100 || $natalyaWatts > 500) && ($hwSolarReturn <= $chargerTotalUsage || $hwInvReturn == 0)) {
+	} elseif (($heaterWatts > 50 || $quookerWatts > 50 || $aanrecht1Watts > 25 || $aanrecht2Watts > 20 || $natalyaWatts > 500) && ($hwSolarReturn <= $chargerOneUsage || $hwInvReturn == 0)) {
 	$shortOverride = 1;
-	} elseif (($heaterWatts > 50 || $quookerWatts > 50 || $aanrecht1Watts > 100 || $aanrecht2Watts > 100 || $natalyaWatts > 500) && ($hwSolarReturn > $chargerTotalUsage || $hwInvReturn != 0)) {
+	} elseif (($heaterWatts > 50 || $quookerWatts > 50 || $aanrecht1Watts > 25 || $aanrecht2Watts > 25 || $natalyaWatts > 500) && ($hwSolarReturn > $chargerOneUsage || $hwInvReturn != 0)) {
 	$shortOverride = 0;
 	}
 
