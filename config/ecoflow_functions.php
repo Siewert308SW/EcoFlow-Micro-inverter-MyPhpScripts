@@ -85,6 +85,7 @@
 		global $hwChargerThreeIP;
 		global $hwEcoFlowOneIP;
 		global $hwEcoFlowTwoIP;
+		global $hwEcoFlowFanIP;
 		
 		$socket = curl_init();
 		if ($energySocket == 'one') {
@@ -97,6 +98,8 @@
 		curl_setopt($socket, CURLOPT_URL, 'http://'.$hwEcoFlowOneIP.'/api/v1/state');
 		} elseif ($energySocket == 'invTwo') {
 		curl_setopt($socket, CURLOPT_URL, 'http://'.$hwEcoFlowTwoIP.'/api/v1/state');
+		} elseif ($energySocket == 'fan') {
+		curl_setopt($socket, CURLOPT_URL, 'http://'.$hwEcoFlowFanIP.'/api/v1/state');
 		}
 		curl_setopt($socket, CURLOPT_RETURNTRANSFER, true);
 		curl_setopt($socket, CURLOPT_CUSTOMREQUEST, 'PUT');
