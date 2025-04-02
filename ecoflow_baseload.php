@@ -102,7 +102,7 @@
 	}
 
 // Set baseload to null when battery has not been calibrated yet
-	if ($batterySOC > 100){
+	if ($batterySOC > 100.2){
 		$newBaseload    = 0;
 		$newInvBaseload = 0;
 	}
@@ -172,6 +172,13 @@
 		}
 		echo ' '.PHP_EOL;
 
+// Print Inverter Status
+		echo ' -/- EcoFlow Omvormers        -\-'.PHP_EOL;
+		echo '  -- Omvormer 1 Temperatuur    : '.$invOneTemp.'˚C'.PHP_EOL;
+		echo '  -- Omvormer 2 Temperatuur    : '.$invTwoTemp.'˚C'.PHP_EOL;	
+		echo '  -- Omvormer koeling          : '.$hwInvFanStatus.''.PHP_EOL;
+		echo ' '.PHP_EOL;
+		
 // Print Schakeltijd
 		echo ' -/- Schakeltijd              -\-'.PHP_EOL;
 		if ($runInfinity == 'no'){
@@ -183,12 +190,6 @@
 		} else {
 		echo '  -- Schakeltijd               : false'.PHP_EOL;
 		}	
-		echo ' '.PHP_EOL;
-		
-// Print Inverter Status
-		echo ' -/- EcoFlow Omvormers        -\-'.PHP_EOL;
-		echo '  -- Omvormer 1 Temperatuur    : '.$invOneTemp.'˚C'.PHP_EOL;
-		echo '  -- Omvormer 2 Temperatuur    : '.$invTwoTemp.'˚C'.PHP_EOL;		
 		echo ' '.PHP_EOL;
 
 // Print Various
@@ -219,18 +220,44 @@
 	
 // Update Baseload
 	if ($newBaseload != $currentBaseload) {
-		if ($debug == 'yes'){
-		echo '  -- Baseload update           : true'.PHP_EOL;
+		
+		if ($hwP1Usage > 0){
+			if (($newBaseload - $currentBaseload) < -abs($ecoflowOutputOffSet) || ($newBaseload - $currentBaseload) > $ecoflowOutputOffSet){
+
+				if ($debug == 'yes'){
+				echo '  -- Baseload update           : false'.PHP_EOL;	
+				}
+		
+				//$invBaseload = round(($newInvBaseload / 2), 2);
+				$invBaseload = ($newInvBaseload) / 2;
+				$ecoflow->setDeviceFunction($ecoflowOneSerialNumber, 'WN511_SET_PERMANENT_WATTS_PACK', ['permanent_watts' => $invBaseload]);
+				sleep(2);
+				$ecoflow->setDeviceFunction($ecoflowTwoSerialNumber, 'WN511_SET_PERMANENT_WATTS_PACK', ['permanent_watts' => $invBaseload]);
+
+			} else {
+				
+				if ($debug == 'yes'){
+				echo '  -- Baseload update           : false'.PHP_EOL;	
+				}
+			}
+			
+		} elseif ($hwP1Usage <= 0){
+			
+				if ($debug == 'yes'){
+				echo '  -- Baseload update           : true'.PHP_EOL;	
+				}
+		
+				//$invBaseload = round(($newInvBaseload / 2), 2);
+				$invBaseload = ($newInvBaseload) / 2;
+				$ecoflow->setDeviceFunction($ecoflowOneSerialNumber, 'WN511_SET_PERMANENT_WATTS_PACK', ['permanent_watts' => $invBaseload]);
+				sleep(2);
+				$ecoflow->setDeviceFunction($ecoflowTwoSerialNumber, 'WN511_SET_PERMANENT_WATTS_PACK', ['permanent_watts' => $invBaseload]);
+		
 		}
-		
-			$invBaseload = ($newInvBaseload) / 2;
-			$ecoflow->setDeviceFunction($ecoflowOneSerialNumber, 'WN511_SET_PERMANENT_WATTS_PACK', ['permanent_watts' => $invBaseload]);
-			sleep(2);
-			$ecoflow->setDeviceFunction($ecoflowTwoSerialNumber, 'WN511_SET_PERMANENT_WATTS_PACK', ['permanent_watts' => $invBaseload]);
-		
+
 	} else {
 		if ($debug == 'yes'){
-		echo '  -- Baseload update           : false'.PHP_EOL;	
+		echo '  -- Baseload update           : false.'.PHP_EOL;	
 		}
 	}
 	
