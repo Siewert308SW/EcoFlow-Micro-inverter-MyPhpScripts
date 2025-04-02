@@ -159,7 +159,7 @@
 	'quookerWcdIDX'   => $baseUrl . $quookerWcdIDX,
 	'aanrecht1WcdIDX' => $baseUrl . $aanrecht1WcdIDX,
 	'aanrecht2WcdIDX' => $baseUrl . $aanrecht2WcdIDX,
-	'natalyaWcdIDX'   => $baseUrl . $natalyaWcdIDX
+	'natalyaWcdIDX'   => $baseUrl . $natalyaWcdIDX,
 	];
 
 	$baseLocalUrl = 'http://127.0.0.1:8080/json.htm?type=command&param=getdevices&rid=';
@@ -272,7 +272,7 @@
 //															     //
 // **************************************************************//
 //        EcoFlow LiFePo4 12/12/20a Homebattery Charging         //
-//                       Charge Override                         //
+//                Charge Override (Almost Full)                  //
 // **************************************************************//
 //                                                               //
 
@@ -300,6 +300,8 @@
 	$shortOverride = 1;
 	} elseif (($heaterWatts > 50 || $quookerWatts > 50 || $aanrecht1Watts > 25 || $aanrecht2Watts > 25 || $natalyaWatts > 500) && ($hwSolarReturn > $chargerOneUsage || $hwInvReturn != 0)) {
 	$shortOverride = 0;
-	}
+	} elseif ($faseProtect == 1){
+	$shortOverride = 0;	
+	}	
 
 ?>
