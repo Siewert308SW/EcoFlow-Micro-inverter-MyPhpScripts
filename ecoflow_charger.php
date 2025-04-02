@@ -97,79 +97,131 @@
 if ($controlSwitch == 'P1'){
 	if ($faseProtect == 0 && $bmsAwake == 0 && $chargerStandby == 'On' && $batterySOC < 100 && $pvAvOneInputVoltage < $battVoltAlmostCharged && $hwInvReturn == 0 && $chargeOverride == 0 && $hwSolarReturn < $chargerOneUsage){
 
-// Laders 1, 2, of 3 UIT
+// Laders 1, 2, of 3 UIT (0 > Watt)	
 		if (($P1ChargerUsage > $chargerOneUsage && $shortOverride == 0) && ($hwChargerOneStatus == 'On' || $hwChargerTwoStatus == 'On' || $hwChargerThreeStatus == 'On')) {
 
 			if (($hwP1Usage > ($chargerOneWatts / 2)) && ($hwP1Usage <= $chargerTotalUsageABS)){
 				if ($debug == 'yes'){echo ' --        Laders 1, 2 of 3 UIT.     --'.PHP_EOL;}
-				if ($hwChargerTwoStatus == 'On' && $hwP1Usage > $chargerTwoWatts)  { switchHwSocket('two','Off'); sleep(10);}
-				if ($hwChargerThreeStatus == 'On' && $hwP1Usage > $chargerOneWatts && $hwChargerTwoStatus == 'Off'){ switchHwSocket('three','Off'); sleep(10);}
-				if ($hwChargerOneStatus == 'On' && $hwP1Usage > $chargerOneWatts && $hwChargerTwoStatus == 'Off' && $hwChargerThreeStatus == 'Off')  { switchHwSocket('one','Off');}				
-			
+				if ($hwChargerThreeStatus == 'On' && $hwP1Usage > $chargerOneWatts){ switchHwSocket('three','Off'); sleep(10);}
+				if ($hwChargerTwoStatus == 'On'   && $hwP1Usage > $chargerOneWatts && $hwChargerThreeStatus == 'Off')  { switchHwSocket('two','Off'); sleep(10);}
+				if ($hwChargerOneStatus == 'On'   && $hwP1Usage > $chargerOneWatts && $hwChargerTwoStatus == 'Off' && $hwChargerThreeStatus == 'Off')  { switchHwSocket('one','Off');}				
+				
 			} elseif ($hwP1Usage > $chargerTotalUsageABS){
-				if ($debug == 'yes'){echo ' --        Laders 1, 2 en 3 UIT..    --'.PHP_EOL;}
-				if ($hwChargerTwoStatus == 'On')  { switchHwSocket('two','Off'); sleep(10);}
-				if ($hwChargerThreeStatus == 'On'){ switchHwSocket('three','Off'); sleep(10);}
-				if ($hwChargerOneStatus == 'On')  { switchHwSocket('one','Off');}
+				if ($debug == 'yes'){echo ' --        Laders 1, 2 en 3 UIT.     --'.PHP_EOL;}
+				if ($hwChargerTwoStatus == 'On')       { switchHwSocket('two','Off'); sleep(10);}
+				if ($hwChargerThreeStatus == 'On')     { switchHwSocket('three','Off'); sleep(10);}
+				if ($hwChargerOneStatus == 'On')       { switchHwSocket('one','Off');}
 			}
 			
-// Lader 1 AAN				
+// Lader 1 AAN (-300 > -600 Watt)	 		
 		} elseif (($P1ChargerUsage > $chargerTwoUsage && $shortOverride == 0) && ($P1ChargerUsage <= $chargerOneUsage)) {
 
-			if ($debug == 'yes'){echo ' --            Lader 1 AAN           --'.PHP_EOL;}			
+			if ($debug == 'yes'){echo ' --            Lader 1 AAN           --'.PHP_EOL;}		
 			if ($hwChargerOneStatus == 'On' && $hwChargerTwoStatus == 'On' && $hwChargerThreeStatus == 'On'){
-				if ($P1ChargerUsage >= $chargerOneTwoUsage && $hwP1Usage > ($chargerOneWatts / 2)){
+				if ($P1ChargerUsage >= $chargerOneUsage && $hwP1Usage > ($chargerOneWatts / 2)){
 					if ($hwChargerOneStatus == 'Off')  { switchHwSocket('one','On'); sleep(10);}
 					if ($hwChargerThreeStatus == 'On') { switchHwSocket('three','Off'); sleep(10);}
 					if ($hwChargerTwoStatus == 'On')   { switchHwSocket('two','Off');}
 				}
-				
+
+			} elseif ($hwChargerOneStatus == 'On' && $hwChargerTwoStatus == 'On' && $hwChargerThreeStatus == 'Off'){
+				if ($P1ChargerUsage >= $chargerOneUsage && $hwP1Usage > ($chargerOneWatts / 2)){
+					if ($hwChargerOneStatus == 'Off')  { switchHwSocket('one','On'); sleep(10);}
+					if ($hwChargerThreeStatus == 'On') { switchHwSocket('three','Off'); sleep(10);}
+					if ($hwChargerTwoStatus == 'On')   { switchHwSocket('two','Off');}
+				}
+
 			} elseif ($hwChargerOneStatus == 'On' && $hwChargerTwoStatus == 'Off' && $hwChargerThreeStatus == 'On'){
 				if ($P1ChargerUsage >= $chargerOneUsage && $hwP1Usage > ($chargerOneWatts / 2)){
 					if ($hwChargerOneStatus == 'Off')  { switchHwSocket('one','On'); sleep(10);}
 					if ($hwChargerThreeStatus == 'On') { switchHwSocket('three','Off'); sleep(10);}
 					if ($hwChargerTwoStatus == 'On')   { switchHwSocket('two','Off');}
 				}
-						
+				
 			} else {
 					if ($hwChargerOneStatus == 'Off')  { switchHwSocket('one','On'); sleep(10);}
 					if ($hwChargerThreeStatus == 'On') { switchHwSocket('three','Off'); sleep(10);}
 					if ($hwChargerTwoStatus == 'On')   { switchHwSocket('two','Off');}						
 			}
 
-// Laders 1 & 3 AAN		
-		} elseif (($P1ChargerUsage > $chargerTotalUsage && $shortOverride == 0) && ($P1ChargerUsage <= $chargerTwoUsage)) {
+// Laders 1 & 3 AAN	(-600 > -900 Watt)		
+		} elseif (($P1ChargerUsage > $chargerOneTwoUsage && $shortOverride == 0) && ($P1ChargerUsage <= $chargerTwoUsage)) {
 					
-				if ($debug == 'yes'){echo ' --          Laders 1 & 3 AAN        --'.PHP_EOL;}
-				if ($hwChargerOneStatus == 'On' && $hwChargerTwoStatus == 'On' && $hwChargerThreeStatus == 'On'){
-					if ($P1ChargerUsage >= $chargerOneTwoUsage){
-						if ($hwChargerOneStatus == 'Off')  { switchHwSocket('one','On'); sleep(10);}
-						if ($hwChargerThreeStatus == 'Off'){ switchHwSocket('three','On'); sleep(10);}
-						if ($hwChargerTwoStatus == 'On')   { switchHwSocket('two','Off');}
-					}
-						
-				} else {
-						if ($hwChargerOneStatus == 'Off')  { switchHwSocket('one','On'); sleep(10);}
-						if ($hwChargerThreeStatus == 'Off'){ switchHwSocket('three','On'); sleep(10);}
-						if ($hwChargerTwoStatus == 'On')   { switchHwSocket('two','Off');}							
+			if ($debug == 'yes'){echo ' --          Laders 1 & 3 AAN        --'.PHP_EOL;}
+			if ($hwChargerOneStatus == 'On' && $hwChargerTwoStatus == 'On' && $hwChargerThreeStatus == 'On'){
+				if ($P1ChargerUsage >= $chargerOneUsage && $hwP1Usage > ($chargerOneWatts / 2)){
+					if ($hwChargerOneStatus == 'Off')  { switchHwSocket('one','On'); sleep(10);}
+					if ($hwChargerThreeStatus == 'Off'){ switchHwSocket('three','On'); sleep(10);}
+					if ($hwChargerTwoStatus == 'On')   { switchHwSocket('two','Off');}
 				}
+
+			} elseif ($hwChargerOneStatus == 'On' && $hwChargerTwoStatus == 'On' && $hwChargerThreeStatus == 'Off'){
+				if ($P1ChargerUsage >= $chargerOneUsage && $hwP1Usage > ($chargerOneWatts / 2)){
+					if ($hwChargerOneStatus == 'Off')  { switchHwSocket('one','On'); sleep(10);}
+					if ($hwChargerThreeStatus == 'Off'){ switchHwSocket('three','On'); sleep(10);}
+					if ($hwChargerTwoStatus == 'On')   { switchHwSocket('two','Off');}
+				}
+
+			} elseif ($hwChargerOneStatus == 'On' && $hwChargerTwoStatus == 'Off' && $hwChargerThreeStatus == 'On'){
+				if ($P1ChargerUsage >= $chargerOneUsage && $hwP1Usage > ($chargerOneWatts / 2)){
+					if ($hwChargerOneStatus == 'Off')  { switchHwSocket('one','On'); sleep(10);}
+					if ($hwChargerThreeStatus == 'Off'){ switchHwSocket('three','On'); sleep(10);}
+					if ($hwChargerTwoStatus == 'On')   { switchHwSocket('two','Off');}
+				}
+				
+			} else {
+					if ($hwChargerOneStatus == 'Off')  { switchHwSocket('one','On'); sleep(10);}
+					if ($hwChargerThreeStatus == 'Off'){ switchHwSocket('three','On'); sleep(10);}
+					if ($hwChargerTwoStatus == 'On')   { switchHwSocket('two','Off');}							
+			}
+
+// Laders 1 & 2 AAN (-900 > -1300 Watt)		
+		} elseif (($P1ChargerUsage > $chargerTotalUsage && $shortOverride == 0) && ($P1ChargerUsage <= $chargerOneTwoUsage)) {
 					
-// Laders 1, 2 & 3 AAN	
+			if ($debug == 'yes'){echo ' --          Laders 1 & 2 AAN        --'.PHP_EOL;}
+			if ($hwChargerOneStatus == 'On' && $hwChargerTwoStatus == 'On' && $hwChargerThreeStatus == 'On'){
+				if ($P1ChargerUsage >= $chargerOneUsage && $hwP1Usage > ($chargerOneWatts / 2)){
+					if ($hwChargerOneStatus == 'Off')  { switchHwSocket('one','On'); sleep(10);}
+					if ($hwChargerThreeStatus == 'On') { switchHwSocket('three','Off'); sleep(10);}
+					if ($hwChargerTwoStatus == 'Off')  { switchHwSocket('two','On');}
+				}
+
+			} elseif ($hwChargerOneStatus == 'On' && $hwChargerTwoStatus == 'On' && $hwChargerThreeStatus == 'Off'){
+				if ($P1ChargerUsage >= $chargerOneUsage && $hwP1Usage > ($chargerOneWatts / 2)){
+					if ($hwChargerOneStatus == 'Off')  { switchHwSocket('one','On'); sleep(10);}
+					if ($hwChargerThreeStatus == 'On') { switchHwSocket('three','Off'); sleep(10);}
+					if ($hwChargerTwoStatus == 'Off')  { switchHwSocket('two','On');}
+				}
+
+			} elseif ($hwChargerOneStatus == 'On' && $hwChargerTwoStatus == 'Off' && $hwChargerThreeStatus == 'On'){
+				if ($P1ChargerUsage >= $chargerOneUsage && $hwP1Usage > ($chargerOneWatts / 2)){
+					if ($hwChargerOneStatus == 'Off')  { switchHwSocket('one','On'); sleep(10);}
+					if ($hwChargerThreeStatus == 'On') { switchHwSocket('three','Off'); sleep(10);}
+					if ($hwChargerTwoStatus == 'Off')  { switchHwSocket('two','On');}
+				}
+				
+			} else {
+					if ($hwChargerOneStatus == 'Off')  { switchHwSocket('one','On'); sleep(10);}
+					if ($hwChargerThreeStatus == 'On') { switchHwSocket('three','Off'); sleep(10);}
+					if ($hwChargerTwoStatus == 'On')   { switchHwSocket('two','Off');}							
+			}
+			
+// Laders 1, 2 & 3 AAN (<= -1300 Watt)
 	    } elseif (($P1ChargerUsage < $chargerTotalUsage)) {
 				if ($debug == 'yes'){echo ' --        Laders 1, 2 & 3 AAN       --'.PHP_EOL;}
-				if ($hwChargerOneStatus == 'Off')  { switchHwSocket('one','On'); sleep(15);}
-				if ($hwChargerThreeStatus == 'Off'){ switchHwSocket('three','On'); sleep(15);}
-				if ($hwChargerTwoStatus == 'Off')  { switchHwSocket('two','On');}
+				if ($hwChargerOneStatus == 'Off')  	   { switchHwSocket('one','On'); sleep(15);}
+				if ($hwChargerThreeStatus == 'Off')    { switchHwSocket('three','On'); sleep(15);}
+				if ($hwChargerTwoStatus == 'Off')      { switchHwSocket('two','On');}
 		}
 	}
 
 // Lader 2 AAN (Batterij Aftoppen)
-			if (($chargeOverride == 1 && $faseProtect == 0)){
-			if ($debug == 'yes'){echo ' --            Lader 2 AAN           --'.PHP_EOL;}
-			if ($hwChargerTwoStatus == 'Off')  { switchHwSocket('two','On'); sleep(10);}
-			if ($hwChargerOneStatus == 'On')  { switchHwSocket('one','Off'); sleep(10);}
-			if ($hwChargerThreeStatus == 'On'){ switchHwSocket('three','Off');}
-			}
+			//if (($chargeOverride == 1 && $faseProtect == 0)){
+			//if ($debug == 'yes'){echo ' --            Lader 2 AAN           --'.PHP_EOL;}
+			//if ($hwChargerTwoStatus == 'Off')          { switchHwSocket('two','On'); sleep(10);}
+			//if ($hwChargerOneStatus == 'On')           { switchHwSocket('one','Off'); sleep(10);}
+			//if ($hwChargerThreeStatus == 'On')         { switchHwSocket('three','Off');}
+			//}
 			
 // Laders 1, 2, & 3 UIT
 		if (($chargerUsage <= $chargerWattsIdle || $hwInvReturn != 0 || $hwSolarReturn > $chargerOneUsage) && ($hwChargerOneStatus == 'On' || $hwChargerTwoStatus == 'On' || $hwChargerThreeStatus == 'On')){			
