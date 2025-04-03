@@ -116,12 +116,6 @@
 		$newBaseload    = 0;
 		$newInvBaseload = 0;
 	}
-
-// Set baseload to null when a inverter is offline
-	if ($ecoflowOneStatus == 0 || $ecoflowTwoStatus == 0) {
-		$newBaseload    = 0;
-		$newInvBaseload = 0;
-	}
 	
 // Set baseload to null
 	if ($controlSwitch == 'Off' || $controlSwitch == 'Stop' || $controlSwitch == 'Manual') {
@@ -227,11 +221,9 @@
 				if ($debug == 'yes'){
 				echo '  -- Baseload update           : false'.PHP_EOL;	
 				}
-		
-				//$invBaseload = round(($newInvBaseload / 2), 2);
 				$invBaseload = ($newInvBaseload) / 2;
 				$ecoflow->setDeviceFunction($ecoflowOneSerialNumber, 'WN511_SET_PERMANENT_WATTS_PACK', ['permanent_watts' => $invBaseload]);
-				sleep(2);
+				sleep(1);
 				$ecoflow->setDeviceFunction($ecoflowTwoSerialNumber, 'WN511_SET_PERMANENT_WATTS_PACK', ['permanent_watts' => $invBaseload]);
 
 			} else {
@@ -246,11 +238,9 @@
 				if ($debug == 'yes'){
 				echo '  -- Baseload update           : true'.PHP_EOL;	
 				}
-		
-				//$invBaseload = round(($newInvBaseload / 2), 2);
 				$invBaseload = ($newInvBaseload) / 2;
 				$ecoflow->setDeviceFunction($ecoflowOneSerialNumber, 'WN511_SET_PERMANENT_WATTS_PACK', ['permanent_watts' => $invBaseload]);
-				sleep(2);
+				sleep(1);
 				$ecoflow->setDeviceFunction($ecoflowTwoSerialNumber, 'WN511_SET_PERMANENT_WATTS_PACK', ['permanent_watts' => $invBaseload]);
 		
 		}
