@@ -294,13 +294,15 @@
 //                                                               //
 
 // ShortOverride (Voorkom flip/flops door devices die maar even een kort hoge verbruik piek hebben)
-	if ($heaterWatts <= 50 && $quookerWatts <= 50 && $aanrecht1Watts <= 25 && $aanrecht2Watts <= 25 && $natalyaWatts <= 500){	
+	if ($heaterWatts <= 50 && $quookerWatts <= 50 && $aanrecht1Watts <= 100 && $aanrecht2Watts <= 100 && $natalyaWatts <= 500){	
 	$shortOverride = 0;
-	} elseif (($heaterWatts > 50 || $quookerWatts > 50 || $aanrecht1Watts > 25 || $aanrecht2Watts > 20 || $natalyaWatts > 500) && ($hwSolarReturn <= $chargerOneUsage || $hwInvReturn == 0)) {
+	} elseif (($heaterWatts > 50 || $quookerWatts > 50 || $aanrecht1Watts > 100 || $aanrecht2Watts > 100 || $natalyaWatts > 500) && ($hwSolarReturn <= $chargerOneUsage || $hwInvReturn == 0)) {
 	$shortOverride = 1;
-	} elseif (($heaterWatts > 50 || $quookerWatts > 50 || $aanrecht1Watts > 25 || $aanrecht2Watts > 25 || $natalyaWatts > 500) && ($hwSolarReturn > $chargerOneUsage || $hwInvReturn != 0)) {
+	} elseif (($heaterWatts > 50 || $quookerWatts > 50 || $aanrecht1Watts > 100 || $aanrecht2Watts > 100 || $natalyaWatts > 500) && ($hwSolarReturn > $chargerOneUsage || $hwInvReturn != 0)) {
 	$shortOverride = 0;
-	} elseif ($faseProtect == 1){
+	}
+	
+	if ($faseProtect == 1 || $hwP1Usage > $chargerOneTwoWatts){
 	$shortOverride = 0;	
 	}	
 
