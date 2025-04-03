@@ -24,7 +24,7 @@
 // Batterij variables
 	$batteryVolt		    = 25.6;								 // Voltage van de batterij
 	$batteryAh              = 300;                               // Totale Ah van alle batterijen
-	$chargerEfficiency      = 79.2;                              // Lader laad efficientie
+	$chargerEfficiency      = 78.9;                              // Lader laad efficientie
 	$batteryMinimum		    = 10;                                // Minimale procenten die in de batterij moeten blijven
 	
 // Homewizard variables
