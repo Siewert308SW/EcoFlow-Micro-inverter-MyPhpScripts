@@ -1,3 +1,7 @@
+# Not maintained anymore / Wordt niet meer onderhouden
+Deze repo is verouderd, nieuwe repo kun je hier hier vinden.
+https://github.com/Siewert308SW/PiBattery
+
 # MyEcoFlow Micro-Inverter thuisbatterij:
 Sinds kort (2024) wat zonnepanelen op dak liggen.<br />
 En alhoewel deze berekend op het jaarlijkse verbruik blijft er op sommige periodes van de dag toch nog een behoorlijke injectie terug op het net<br />
